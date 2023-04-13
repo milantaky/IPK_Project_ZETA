@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 
 int zkontrolujPrepinace(int pocet, char** prepinace);
+int vypisAktivniRozhrani();
 
 int main(int argc, char** argv){
 
@@ -15,13 +16,15 @@ int main(int argc, char** argv){
     int pocetProtokolu = 0;
     int port = -1;      
     int interfaceSet = 0;    
-
+    
 // Zpracovani prepinacu ---------------------------------------------------------------------
     if(argc == 1) {
         return 0;
     } else {
         if(argc == 2 && (strcmp(argv[1], "-i") == 0 || strcmp(argv[1], "--interface") == 0)){
-            // vypis aktivni rozhrani
+            if(!vypisAktivniRozhrani()){
+                return 1;
+            }
             printf("\njen interface\n");
             return 0;
         } 
@@ -36,7 +39,7 @@ int main(int argc, char** argv){
                     strcpy(interface, argv[argN]);
                     interfaceSet = 1;
                     argN++;
-                    //continue;
+                    continue;
                 } // netreba else
             }
             
@@ -186,25 +189,6 @@ Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Zkontroluje prepinace, a vraci 1, pokud je vse v poradku, jinak 0
 // Predpokladane spusteni: ./ipk-sniffer [-i interface | --interface interface] {-p port [--tcp|-t] [--udp|-u]} [--arp] [--icmp4] [--icmp6] [--igmp] [--mld] {-n num}
 int zkontrolujPrepinace(int pocet, char** prepinace){
@@ -216,6 +200,31 @@ int zkontrolujPrepinace(int pocet, char** prepinace){
 
     return 1;
 }
+
+// Vypise seznam aktivnich rozhrani
+// Vraci 1 pri chybe, jinak 0
+// ZDROJ: https://www.tcpdump.org/manpages/pcap_findalldevs.3pcap.html
+int vypisAktivniRozhrani(){
+    char errbuff[PCAP_ERRBUF_SIZE];
+    pcap_if_t *devs;
+
+    if(pcap_findalldevs(&devs, errbuff) == -1){
+        fprintf(stderr, "CHYBA: Nastala chyba pri hledani aktivnich rozhrani:\n     %s\n", errbuff);
+        return 1;
+    }
+
+    printf("\n");
+    while(devs->next != NULL){
+        printf("%s\n",devs->name);
+        devs = devs->next;
+    }
+    printf("\n");
+
+    pcap_freealldevs(devs);
+    return 0;
+}
+
+
 
 
 
