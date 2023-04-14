@@ -13,6 +13,8 @@ int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 void vypisPacket(const u_char *packetos, int delka);
 
+// TODO: interrupt signal
+
 int main(int argc, char** argv){
     char interface[20];
     int pocetPacketu = 1;                   // Defaultne
@@ -40,7 +42,12 @@ int main(int argc, char** argv){
             if(strcmp(argv[argN], "-i") == 0 || strcmp(argv[argN], "--interface") == 0){     // -i / --interface s hodnotou - predpokladam ze je prikaz spravne
                 if(argv[argN + 1] != NULL){
                     argN++;
-                    strcpy(interface, argv[argN]);
+                    if((argv[argN][0] > 64 && argv[argN][0] < 91) || (argv[argN][0] > 97 && argv[argN][0] < 123)){
+                        strcpy(interface, argv[argN]);
+                    } else {
+                        fprintf(stderr, "CHYBA: Neplatny nazev rozhrani: %s\n", argv[argN]);
+                        return 1;
+                    }
                     interfaceSet = 1;
                     argN++;
                     continue;
@@ -162,9 +169,9 @@ int main(int argc, char** argv){
                 }
                 else if(strcmp(argv[argN], "--ndp") == 0){      // NDP --ndp
                     if(!pocetProtokolu){
-                        strcat(filteros, "ndp");
+                        strcat(filteros, "(icmp6 and (ip6[40] = 133 or ip6[40] = 134 or ip6[40] = 135 or ip6[40] = 136 or ip6[40] = 137))");
                     } else {
-                        strcat(filteros, " or ndp");
+                        strcat(filteros, " or (icmp6 and (ip6[40] = 133 or ip6[40] = 134 or ip6[40] = 135 or ip6[40] = 136 or ip6[40] = 137))");
                     }
                         pocetProtokolu++;
                     //continue;
@@ -180,9 +187,9 @@ int main(int argc, char** argv){
                 }
                 else if(strcmp(argv[argN], "--mld") == 0){      // MLD --mld
                     if(!pocetProtokolu){
-                        strcat(filteros, "mld");
+                        strcat(filteros, "(icmp6 and (ip6[40] = 143))");
                     } else {
-                        strcat(filteros, " or mld");
+                        strcat(filteros, " or (icmp6 and (ip6[40] = 143))");
                     }
                         pocetProtokolu++;
                     //continue;
@@ -231,60 +238,68 @@ int main(int argc, char** argv){
     */
 
 
-    // int timeout = 10000;                            // v ms - 10s
-    // char errBuff[PCAP_ERRBUF_SIZE];
-    // memset(errBuff, 0, PCAP_ERRBUF_SIZE);
-    // pcap_t *handle;                                 // kam se bude chytat
+    int timeout = 10000;                            // v ms - 10s
+    char errBuff[PCAP_ERRBUF_SIZE];
+    memset(errBuff, 0, PCAP_ERRBUF_SIZE);
+    pcap_t *handle;                                 // kam se bude chytat
 
-    // // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
-    // if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, timeout, errBuff)) == NULL){
-    //     fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
-    //     return 1;
-    // }
+    // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
+    if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, timeout, errBuff)) == NULL){
+        fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
+        return 1;
+    }
 
-    // // Filtr  --------------------------------------------------------------------------
-    // // ZDROJ: https://www.tcpdump.org/manpages/pcap_compile.3pcap.html
+    // Filtr  --------------------------------------------------------------------------
+    // ZDROJ: https://www.tcpdump.org/manpages/pcap_compile.3pcap.html
 
-    // if(pocetProtokolu){
-    //     printf("Nastavuji filter\n");
-    //     struct bpf_program pFilter; 
-    //     if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
-    //         fprintf(stderr, "CHYBA: Prelozeni filtru:\n       %s\n", pcap_geterr(handle));
-    //         return 1;
-    //     }
+    if(pocetProtokolu){
+        printf("Nastavuji filter\n");
+        struct bpf_program pFilter; 
+        if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
+            fprintf(stderr, "CHYBA: Prelozeni filtru:\n       %s\n", pcap_geterr(handle));
+            return 1;
+        }
         
-    //     if(pcap_setfilter(handle, &pFilter) == PCAP_ERROR){
-    //         fprintf(stderr, "CHYBA: Nastaveni filtru:\n       %s\n", pcap_geterr(handle));
-    //         return 1;
-    //     }
-    // }
+        if(pcap_setfilter(handle, &pFilter) == PCAP_ERROR){
+            fprintf(stderr, "CHYBA: Nastaveni filtru:\n       %s\n", pcap_geterr(handle));
+            return 1;
+        }
+    }                           //      igmp, arp, icmp6 (jeho soucasti je MLD)
 
-    // // Sbirani packetu
-    // if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
-    //     fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
-    //     return 1;
-    // }
+    // Sbirani packetu
+    if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
+        fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
+        return 1;
+    }
 
-    // pcap_close(handle);
+    pcap_close(handle);
 
     return 0;
 }
 
 /*
-Pokud je jen -i nebo --interface, vypis aktivni rozhrani
-Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde
--p doplnuje TCP/UDP, ale nemusi. muze byt jako src i dest
+Pokud je jen -i nebo --interface, vypis aktivni rozhrani                DONE
+Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde   DONE
+-p doplnuje TCP/UDP, ale nemusi. muze byt jako src i dest               
     -t --tcp
     -u --udp
--n pocet packetu - default 1
+-n pocet packetu - default 1                                            DONE
 
+// ---------------- TEST
+// bere to :
+    // ARP, IGMP, NDP
+// melo by :
+    // mld (neprisel zadny), TCP - bere to i TLS, ale to bezi na TCP
 
 --icmp4 (will display only ICMPv4 packets).
 --icmp6 (will display only ICMPv6 echo request/response).
---arp (will display only ARP frames).
---ndp (will display only ICMPv6 NDP packets).
---igmp (will display only IGMP packets).
+    -- request - 128, reply - 129 
+                                                            // --arp (will display only ARP frames).                                   
+                                                            // --ndp (will display only ICMPv6 NDP packets).
+                                                            //     -- types 133-137 u icmpv6
+                                                            // --igmp (will display only IGMP packets).
 --mld (will display only MLD packets).
+    -- icmpv6 type 143
 */
 
 
