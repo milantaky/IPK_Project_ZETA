@@ -20,36 +20,35 @@ int main(int argc, char** argv){
     int pocetProtokolu = 0;
     int port = -1;      
     int interfaceSet = 0;    
+    // int tcpSet = 0;
+    // int udpSet = 0;
     
 // Zpracovani prepinacu ---------------------------------------------------------------------
     if(argc == 1) {
         return 0;
     } else {
+        // Zadan pouze interface -> vypis aktivnich rozhrani 
         if(argc == 2 && (strcmp(argv[1], "-i") == 0 || strcmp(argv[1], "--interface") == 0)){
             if(!vypisAktivniRozhrani()){
                 return 1;
             }
-            printf("\njen interface\n");
             return 0;
         } 
 
-        int argN = 1;
+        int argN = 1;           
         while(argv[argN] != NULL){
-
-            // -i / --interface s hodnotou - predpokladam ze je prikaz spravne
-            if(strcmp(argv[argN], "-i") == 0 || strcmp(argv[argN], "--interface") == 0){
+            if(strcmp(argv[argN], "-i") == 0 || strcmp(argv[argN], "--interface") == 0){     // -i / --interface s hodnotou - predpokladam ze je prikaz spravne
                 if(argv[argN + 1] != NULL){
                     argN++;
                     strcpy(interface, argv[argN]);
                     interfaceSet = 1;
                     argN++;
                     continue;
-                } // netreba else
+                }
             }
             
             if(interfaceSet){
-                // -p 
-                if(strcmp(argv[argN], "-p") == 0){
+                if(strcmp(argv[argN], "-p") == 0){       // -p 
                     if(argv[argN + 1] != NULL){
                         argN++;
                         if((port = atoi(argv[argN])) == 0){
@@ -62,7 +61,7 @@ int main(int argc, char** argv){
                         return 1;
                     }    
                 } 
-                else if(strcmp(argv[argN], "-n") == 0){                  // -n
+                else if(strcmp(argv[argN], "-n") == 0){  // -n
                     if(argv[argN + 1] != NULL){
                         argN++;
                         if((pocetPacketu = atoi(argv[argN])) == 0){
@@ -74,26 +73,67 @@ int main(int argc, char** argv){
                         fprintf(stderr, "CHYBA: Chybi argument za -n.\n");
                         return 1;
                     }
-                }                               // PROTOKOLY --------------------------------------------------------------
-                else if(strcmp(argv[argN], "-t") == 0 || strcmp(argv[argN], "--tcp") == 0){      // TCP -t --tcp
+                }
+                // PROTOKOLY --------------------------------------------------------------
+                else if(strcmp(argv[argN], "-t") == 0 || strcmp(argv[argN], "--tcp") == 0){   // TCP -t --tcp
                     if(!pocetProtokolu){
-                        strcat(filteros, "tcp");
+                        if(port){  // Je nastaveny port, muze byt u src i dest
+                            char port_str[10];
+                            sprintf(port_str, "%d", port);
+                            strcat(filteros, "(tcp and src port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ") or (tcp and dest port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ")");
+                        } else {
+                            strcat(filteros, "tcp");
+                        }
                     } else {
-                        strcat(filteros, " or tcp");
+                        if(port){
+                            char port_str[10];
+                            sprintf(port_str, "%d", port);
+                            strcat(filteros, " or (tcp and src port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ") or (tcp and dest port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ")");
+                        } else {
+                            strcat(filteros, " or tcp");
+                        }
                     }
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "-u") == 0 || strcmp(argv[argN], "--udp") == 0){          // UDP -u --udp
+                else if(strcmp(argv[argN], "-u") == 0 || strcmp(argv[argN], "--udp") == 0){   // UDP -u --udp
                     if(!pocetProtokolu){
-                        strcat(filteros, "udp");
+                        if(port){  // Je nastaveny port, muze byt u src i dest
+                            char port_str[10];
+                            sprintf(port_str, "%d", port);
+                            strcat(filteros, "(udp and src port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ") or (udp and dest port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ")");
+                        } else {
+                            strcat(filteros, "udp");
+                        }
                     } else {
-                        strcat(filteros, " or udp");
+                        if(port){
+                            char port_str[10];
+                            sprintf(port_str, "%d", port);
+                            strcat(filteros, " or (udp and src port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ") or (udp and dest port ");
+                            strcat(filteros, port_str);
+                            strcat(filteros, ")");
+                        } else {
+                            strcat(filteros, " or udp");
+                        }
                     }
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "--icmp4") == 0){                                          // ICMPv4 --icmp4             
+                else if(strcmp(argv[argN], "--icmp4") == 0){    // ICMPv4 --icmp4             
                     if(!pocetProtokolu){
                         strcat(filteros, "icmp");
                     } else {
@@ -102,7 +142,7 @@ int main(int argc, char** argv){
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "--icmp6") == 0){                                             // ICMPv6 --icmp6
+                else if(strcmp(argv[argN], "--icmp6") == 0){    // ICMPv6 --icmp6
                     if(!pocetProtokolu){
                         strcat(filteros, "icmp6");
                     } else {
@@ -111,7 +151,7 @@ int main(int argc, char** argv){
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "--arp") == 0){                                                   // ARP --arp
+                else if(strcmp(argv[argN], "--arp") == 0){      // ARP --arp
                     if(!pocetProtokolu){
                         strcat(filteros, "arp");
                     } else {
@@ -120,7 +160,7 @@ int main(int argc, char** argv){
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "--ndp") == 0){                                       // NDP --ndp
+                else if(strcmp(argv[argN], "--ndp") == 0){      // NDP --ndp
                     if(!pocetProtokolu){
                         strcat(filteros, "ndp");
                     } else {
@@ -129,7 +169,7 @@ int main(int argc, char** argv){
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "--igmp") == 0){                                          // IGMP --igmp
+                else if(strcmp(argv[argN], "--igmp") == 0){     // IGMP --igmp
                     if(!pocetProtokolu){
                         strcat(filteros, "igmp");
                     } else {
@@ -138,7 +178,7 @@ int main(int argc, char** argv){
                         pocetProtokolu++;
                     //continue;
                 }
-                else if(strcmp(argv[argN], "--mld") == 0){                                                   // MLD --mld
+                else if(strcmp(argv[argN], "--mld") == 0){      // MLD --mld
                     if(!pocetProtokolu){
                         strcat(filteros, "mld");
                     } else {
@@ -147,7 +187,7 @@ int main(int argc, char** argv){
                         pocetProtokolu++;
                     //continue;
                 } 
-                else {                                      // Pokud to doslo az sem, je to neplatny argument
+                else {        // Pokud to doslo az sem, je to neplatny argument
                     fprintf(stderr, "CHYBA: neplatny argument: %s\n", argv[argN]);
                     return 1;
                 }
@@ -173,20 +213,19 @@ int main(int argc, char** argv){
 
     /*
     nastavene protokoly?
-        -> nastav filter
+        -> nastav filter                                                            DONE
         -> zkompiluj
         -> set filter
-    otevri interface pro live           pcap_open_live
-
-    nacti packet        |   pcap_loop
+    otevri interface pro live           pcap_open_live                              DONE
+    nacti packet        |   pcap_loop                                               DONE
     zpracuj             |
         -> procti hlavicku
             -> vypis info
-        -> napis offset: hexa zprava  -  normal zprava (netiskutelny znak = .)
-    chytej dalsi
+        -> napis offset: hexa zprava  -  normal zprava (netiskutelny znak = .)      DONE
+    chytej dalsi                                                                    DONE
     */
 
-    //       pcap_t *pcap_open_live(const char *device, int snaplen, int promisc, int to_ms, char *errbuf);
+
     int timeout = 10000;                            // v ms - 10s
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
@@ -199,9 +238,8 @@ int main(int argc, char** argv){
     }
 
     // TODO: Filtr
-    // compile
-    // setfilter
-
+        // compile
+        // setfilter
 
     if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
         fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
@@ -273,6 +311,7 @@ int vypisAktivniRozhrani(){
     return 0;
 }
 
+// Callback funkce pro zpracovani packetu
 void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const u_char *packetBody){
 
     // Zkontroluje jestli je packet typu LINKTYPE_ETHERNET (DLT_EN10MB)
@@ -296,7 +335,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     printf("frame length: %d bytes\n", packetHeader->len);
     
     // TODO: IP adresy
-    // TODO: porty
+    // TODO: porty - jen u udp, tcp
 
     // Vypis obsahu packetu
     vypisPacket(packetBody, packetHeader->caplen);
@@ -305,6 +344,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     
 }
 
+// Vypise obsah celeho packetu
 void vypisPacket(const u_char *packetos, int delka){
 
     printf("\n");
@@ -358,18 +398,3 @@ void vypisPacket(const u_char *packetos, int delka){
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-//Promiscuous mode is set with pcap_set_promisc().  ZDROJ - https://www.tcpdump.org/manpages/pcap.3pcap.html
-
-// useful linky
-// https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html - otevreni ke cmuchu
