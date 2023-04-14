@@ -7,6 +7,7 @@
 
 int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
+void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 
 int main(int argc, char** argv){
 
@@ -158,11 +159,47 @@ int main(int argc, char** argv){
 
     }      
 
-    printf("\nInterface: %s\n", interface);
+    printf("\n------------- MOJE INFO --------------\n");
+    printf("Interface: %s\n", interface);
     printf("Filter: %s\n", filteros);
     printf("Port %d\n", port);
     printf("N %d\n", pocetPacketu);
-    printf("pocetProtokolu %d\n\n", pocetProtokolu);
+    printf("pocetProtokolu %d\n", pocetProtokolu);
+    printf("--------------------------------------\n\n");
+
+
+    /*
+    nastavene protokoly?
+        -> nastav filter
+        -> zkompiluj
+        -> set filter
+    otevri interface pro live           pcap_open_live
+
+    nacti packet        |   pcap_loop
+    zpracuj             |
+        -> procti hlavicku
+            -> vypis info
+        -> napis offset: hexa zprava  -  normal zprava (netiskutelny znak = .)
+    chytej dalsi
+    */
+
+    //       pcap_t *pcap_open_live(const char *device, int snaplen, int promisc, int to_ms, char *errbuf);
+    int timeout = 10000;                            // v ms - 10s
+    char errBuff[PCAP_ERRBUF_SIZE];
+    memset(errBuff, 0, PCAP_ERRBUF_SIZE);
+    pcap_t *handle;                                 // kam se bude chytat
+
+    // https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
+    if((handle = pcap_open_live(interface, BUFSIZ, 1, timeout, errBuff)) == NULL){
+        fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
+        return 1;
+    }
+
+    pcap_loop(handle, pocetPacketu, packetCallback,NULL);
+
+
+
+    pcap_close(handle);
 
     return 0;
 }
@@ -205,7 +242,10 @@ int zkontrolujPrepinace(int pocet, char** prepinace){
 // Vraci 1 pri chybe, jinak 0
 // ZDROJ: https://www.tcpdump.org/manpages/pcap_findalldevs.3pcap.html
 int vypisAktivniRozhrani(){
+
     char errbuff[PCAP_ERRBUF_SIZE];
+    memset(errbuff, 0 , PCAP_ERRBUF_SIZE);      // vynuluje buffer pred pouzitim
+
     pcap_if_t *devs;
 
     if(pcap_findalldevs(&devs, errbuff) == -1){
@@ -224,7 +264,22 @@ int vypisAktivniRozhrani(){
     return 0;
 }
 
+void packetCallback(u_char *args, const struct pcap_pkthdr *packetHeader, const u_char *packetBody){
+    printf("prislo!!!!\n");
+    printf("ARGS  : %s\n", args);
+    printf("HEADER: %d - caplen\n", packetHeader->caplen);
+    printf("HEADER: %d - len\n", packetHeader->len);
+    //printf("BODY  : %s\n\n", packetBody);
 
+    printf("BODY  : ");
+
+    int zpravicka = packetHeader->caplen;
+    for (int i = 0; i < zpravicka; i++) {
+        printf("%02x ", packetBody[i]);
+    }
+
+    printf("\n\n");
+}
 
 
 
