@@ -4,13 +4,13 @@
 #include <ctype.h>
 #include <pcap.h>
 #include <arpa/inet.h>
+#include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
 
 int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 
 int main(int argc, char** argv){
-
     char interface[20];
     int pocetPacketu = 1;                   // Defaultne
     char filteros[100] = "";
@@ -195,7 +195,10 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    pcap_loop(handle, pocetPacketu, packetCallback,NULL);
+    // compile
+    // setfilter
+
+    pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle);
 
 
 
@@ -264,15 +267,36 @@ int vypisAktivniRozhrani(){
     return 0;
 }
 
-void packetCallback(u_char *args, const struct pcap_pkthdr *packetHeader, const u_char *packetBody){
+void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const u_char *packetBody){
+
+    // Zkontroluje jestli je packet typu LINKTYPE_ETHERNET (DLT_EN10MB)
+    // ZDROJ: https://www.tcpdump.org/manpages/pcap_datalink.3pcap.html
+    int linkType = pcap_datalink((pcap_t *) user);
+    if(linkType != DLT_EN10MB){
+        printf("neeeeeeee\n");
+        return;
+    } 
+    
     printf("prislo!!!!\n");
-    printf("ARGS  : %s\n", args);
-    printf("HEADER: %d - caplen\n", packetHeader->caplen);
-    printf("HEADER: %d - len\n", packetHeader->len);
-    //printf("BODY  : %s\n\n", packetBody);
 
-    printf("BODY  : ");
+    // TODO: Timestamp
 
+    // Zjisteni src/dest MAC adresy - mozna hodit do fce
+    // ZDROJ: https://linux.die.net/man/3/ether_ntoa
+    struct ether_header *ethHeader = (struct ether_header *) packetHeader;
+    struct ether_addr *srcMAC  = (struct ether_addr *) ethHeader->ether_shost;
+    struct ether_addr *destMAC = (struct ether_addr *) ethHeader->ether_dhost;
+
+    // TODO: upravit vypsani podle toho pojebanyho RFC
+    printf("src MAC: %s\n", ether_ntoa(srcMAC));
+    printf("dst MAC: %s\n", ether_ntoa(destMAC));
+
+    printf("frame length: %d bytes\n", packetHeader->len);
+    
+    // TODO: IP adresy
+    // TODO: porty
+
+    printf("TELO  : ");
     int zpravicka = packetHeader->caplen;
     for (int i = 0; i < zpravicka; i++) {
         printf("%02x ", packetBody[i]);
