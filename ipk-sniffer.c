@@ -6,6 +6,8 @@
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
 
+#define MAX_PACKET_SIZE 65535
+
 int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
@@ -190,7 +192,7 @@ int main(int argc, char** argv){
     pcap_t *handle;                                 // kam se bude chytat
 
     // https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
-    if((handle = pcap_open_live(interface, BUFSIZ, 1, timeout, errBuff)) == NULL){
+    if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, timeout, errBuff)) == NULL){
         fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
         return 1;
     }
@@ -275,14 +277,10 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // Zkontroluje jestli je packet typu LINKTYPE_ETHERNET (DLT_EN10MB)
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_datalink.3pcap.html
     int linkType = pcap_datalink((pcap_t *) user);
-    if(linkType != DLT_EN10MB){
-        printf("neeeeeeee\n");
-        return;
-    } 
-    
-    printf("prislo!!!!\n");
+    if(linkType != DLT_EN10MB) return;
 
     // TODO: Timestamp
+
 
     // Zjisteni src/dest MAC adresy - mozna hodit do fce
     // ZDROJ: https://linux.die.net/man/3/ether_ntoa
@@ -299,13 +297,60 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // TODO: IP adresy
     // TODO: porty
 
-    printf("TELO  : ");
-    int zpravicka = packetHeader->caplen;
-    for (int i = 0; i < zpravicka; i++) {
+    // Vypis obsahu packetu
+    printf("\n");
+    int delkaZpravy = packetHeader->caplen;
+    int zbyvaDopsat = (delkaZpravy) % 16;
+    for (int i = 0; i < delkaZpravy; i++) {
+        // byte_offset - vymyslet lip
+        if(i % 16 == 0 && i == 0) printf("0x%05x: ", i);
+
+        if(i != 0 && i % 16 == 0){              // Je to posledni pismeno na radku? (krom 1.)
+            for(int j = i - 16; j < i; j++){
+                if(packetBody[j] > 32 && packetBody[j] < 127)
+                    printf("%c", packetBody[j]);
+                else 
+                    printf(".");
+                
+                if(j == i - 9) printf(" ");
+            }
+            printf("\n");
+            printf("0x%05x: ", i);
+        }
+
         printf("%02x ", packetBody[i]);
+
+        // TODO: opravit aby to tu nebylo 3x
+        // Tisknutelne/netisknutelne znaky
+        if(i == delkaZpravy - 1){                       // Konec vypsane zpravy - dopsat zbyle znaky
+            if(zbyvaDopsat != 0){                       // Je posledni radek plny?
+                for(int k = 0; k < 48 - zbyvaDopsat * 3; k++){
+                    printf(" ");
+                }
+
+                for(int j = delkaZpravy - zbyvaDopsat; j < delkaZpravy; j++){
+                    if(packetBody[j] > 32 && packetBody[j] < 127)
+                        printf("%c", packetBody[j]);
+                    else 
+                        printf(".");
+                        
+                    if(j == delkaZpravy - zbyvaDopsat + 7) printf(" ");
+                }
+            } else {                                    // Je plny, dopis ho
+                for(int j = 0; j < 16; j++){
+                    if(packetBody[j] > 32 && packetBody[j] < 127)
+                        printf("%c", packetBody[j]);
+                    else 
+                        printf(".");
+
+                    if(j == 8) printf(" ");
+                }
+            }
+        }
     }
 
     printf("\n\n");
+    
 }
 
 
