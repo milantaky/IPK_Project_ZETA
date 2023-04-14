@@ -16,7 +16,7 @@ void vypisPacket(const u_char *packetos, int delka);
 int main(int argc, char** argv){
     char interface[20];
     int pocetPacketu = 1;                   // Defaultne
-    char filteros[100] = "";
+    char filteros[512] = "";                // 512 protoze nejdelsi retezec muze byt 506
     int pocetProtokolu = 0;
     int port = -1;      
     int interfaceSet = 0;    
@@ -51,8 +51,8 @@ int main(int argc, char** argv){
                 if(strcmp(argv[argN], "-p") == 0){       // -p 
                     if(argv[argN + 1] != NULL){
                         argN++;
-                        if((port = atoi(argv[argN])) == 0){
-                            fprintf(stderr, "CHYBA: Neplatny argument za -p: %s\n", argv[argN]);
+                        if(argv[argN][0] < 47 || argv[argN][0] > 58 || (port = atoi(argv[argN])) == 0 || port < 1){
+                            fprintf(stderr, "CHYBA: Neplatny argument za -p (musi byt cislo vetsi 0): %s\n", argv[argN]);
                             return 1;
                         }
                         //continue;
@@ -64,8 +64,8 @@ int main(int argc, char** argv){
                 else if(strcmp(argv[argN], "-n") == 0){  // -n
                     if(argv[argN + 1] != NULL){
                         argN++;
-                        if((pocetPacketu = atoi(argv[argN])) == 0){
-                            fprintf(stderr, "CHYBA: Neplatny argument za -n: %s - musi byt cislo.\n", argv[argN]);
+                        if(argv[argN][0] < 47 || argv[argN][0] > 58 || (pocetPacketu = atoi(argv[argN])) == 0 || pocetPacketu < 1){
+                            fprintf(stderr, "CHYBA: Neplatny argument za -n (musi byt cislo vetsi 0): %s\n", argv[argN]);
                             return 1;
                         }    
                         //continue; 
@@ -77,7 +77,7 @@ int main(int argc, char** argv){
                 // PROTOKOLY --------------------------------------------------------------
                 else if(strcmp(argv[argN], "-t") == 0 || strcmp(argv[argN], "--tcp") == 0){   // TCP -t --tcp
                     if(!pocetProtokolu){
-                        if(port){  // Je nastaveny port, muze byt u src i dest
+                        if(port > 0){  // Je nastaveny port, muze byt u src i dest
                             char port_str[10];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, "(tcp and src port ");
@@ -89,7 +89,7 @@ int main(int argc, char** argv){
                             strcat(filteros, "tcp");
                         }
                     } else {
-                        if(port){
+                        if(port > 0){
                             char port_str[10];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, " or (tcp and src port ");
@@ -106,7 +106,7 @@ int main(int argc, char** argv){
                 }
                 else if(strcmp(argv[argN], "-u") == 0 || strcmp(argv[argN], "--udp") == 0){   // UDP -u --udp
                     if(!pocetProtokolu){
-                        if(port){  // Je nastaveny port, muze byt u src i dest
+                        if(port > 0){  // Je nastaveny port, muze byt u src i dest
                             char port_str[10];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, "(udp and src port ");
@@ -118,7 +118,7 @@ int main(int argc, char** argv){
                             strcat(filteros, "udp");
                         }
                     } else {
-                        if(port){
+                        if(port > 0){
                             char port_str[10];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, " or (udp and src port ");
@@ -197,6 +197,11 @@ int main(int argc, char** argv){
                 return 1;
             }
 
+            if(pocetProtokolu > 8){
+                fprintf(stderr, "CHYBA: prilis mnoho zadanych protokolu\n");
+                return 1;
+            }
+
             argN++;
         }
 
@@ -210,12 +215,12 @@ int main(int argc, char** argv){
     printf("pocetProtokolu %d\n", pocetProtokolu);
     printf("--------------------------------------\n\n");
 
-
     /*
-    nastavene protokoly?
+    nastavene protokoly?                                                            DONE
         -> nastav filter                                                            DONE
-        -> zkompiluj
-        -> set filter
+        -> zkompiluj                                                                DONE
+        -> set filter                                                               DONE
+        -> test
     otevri interface pro live           pcap_open_live                              DONE
     nacti packet        |   pcap_loop                                               DONE
     zpracuj             |
@@ -226,27 +231,41 @@ int main(int argc, char** argv){
     */
 
 
-    int timeout = 10000;                            // v ms - 10s
-    char errBuff[PCAP_ERRBUF_SIZE];
-    memset(errBuff, 0, PCAP_ERRBUF_SIZE);
-    pcap_t *handle;                                 // kam se bude chytat
+    // int timeout = 10000;                            // v ms - 10s
+    // char errBuff[PCAP_ERRBUF_SIZE];
+    // memset(errBuff, 0, PCAP_ERRBUF_SIZE);
+    // pcap_t *handle;                                 // kam se bude chytat
 
-    // https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
-    if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, timeout, errBuff)) == NULL){
-        fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
-        return 1;
-    }
+    // // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
+    // if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, timeout, errBuff)) == NULL){
+    //     fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
+    //     return 1;
+    // }
 
-    // TODO: Filtr
-        // compile
-        // setfilter
+    // // Filtr  --------------------------------------------------------------------------
+    // // ZDROJ: https://www.tcpdump.org/manpages/pcap_compile.3pcap.html
 
-    if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
-        fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
-        return 1;
-    }
+    // if(pocetProtokolu){
+    //     printf("Nastavuji filter\n");
+    //     struct bpf_program pFilter; 
+    //     if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
+    //         fprintf(stderr, "CHYBA: Prelozeni filtru:\n       %s\n", pcap_geterr(handle));
+    //         return 1;
+    //     }
+        
+    //     if(pcap_setfilter(handle, &pFilter) == PCAP_ERROR){
+    //         fprintf(stderr, "CHYBA: Nastaveni filtru:\n       %s\n", pcap_geterr(handle));
+    //         return 1;
+    //     }
+    // }
 
-    pcap_close(handle);
+    // // Sbirani packetu
+    // if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
+    //     fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
+    //     return 1;
+    // }
+
+    // pcap_close(handle);
 
     return 0;
 }
