@@ -11,6 +11,7 @@
 int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
+void vypisPacket(const u_char *packetos, int delka);
 
 int main(int argc, char** argv){
     char interface[20];
@@ -298,17 +299,24 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // TODO: porty
 
     // Vypis obsahu packetu
+    vypisPacket(packetBody, packetHeader->caplen);
+
+    printf("\n\n");
+    
+}
+
+void vypisPacket(const u_char *packetos, int delka){
+
     printf("\n");
-    int delkaZpravy = packetHeader->caplen;
-    int zbyvaDopsat = (delkaZpravy) % 16;
-    for (int i = 0; i < delkaZpravy; i++) {
+    int zbyvaDopsat = (delka) % 16;
+    for (int i = 0; i < delka; i++) {
         // byte_offset - vymyslet lip
         if(i % 16 == 0 && i == 0) printf("0x%05x: ", i);
 
         if(i != 0 && i % 16 == 0){              // Je to posledni pismeno na radku? (krom 1.)
             for(int j = i - 16; j < i; j++){
-                if(packetBody[j] > 32 && packetBody[j] < 127)
-                    printf("%c", packetBody[j]);
+                if(packetos[j] > 32 && packetos[j] < 127)
+                    printf("%c", packetos[j]);
                 else 
                     printf(".");
                 
@@ -318,28 +326,28 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
             printf("0x%05x: ", i);
         }
 
-        printf("%02x ", packetBody[i]);
+        printf("%02x ", packetos[i]);
 
         // TODO: opravit aby to tu nebylo 3x
         // Tisknutelne/netisknutelne znaky
-        if(i == delkaZpravy - 1){                       // Konec vypsane zpravy - dopsat zbyle znaky
+        if(i == delka - 1){                       // Konec vypsane zpravy - dopsat zbyle znaky
             if(zbyvaDopsat != 0){                       // Je posledni radek plny?
                 for(int k = 0; k < 48 - zbyvaDopsat * 3; k++){
                     printf(" ");
                 }
 
-                for(int j = delkaZpravy - zbyvaDopsat; j < delkaZpravy; j++){
-                    if(packetBody[j] > 32 && packetBody[j] < 127)
-                        printf("%c", packetBody[j]);
+                for(int j = delka - zbyvaDopsat; j < delka; j++){
+                    if(packetos[j] > 32 && packetos[j] < 127)
+                        printf("%c", packetos[j]);
                     else 
                         printf(".");
                         
-                    if(j == delkaZpravy - zbyvaDopsat + 7) printf(" ");
+                    if(j == delka - zbyvaDopsat + 7) printf(" ");
                 }
             } else {                                    // Je plny, dopis ho
                 for(int j = 0; j < 16; j++){
-                    if(packetBody[j] > 32 && packetBody[j] < 127)
-                        printf("%c", packetBody[j]);
+                    if(packetos[j] > 32 && packetos[j] < 127)
+                        printf("%c", packetos[j]);
                     else 
                         printf(".");
 
@@ -349,8 +357,6 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
         }
     }
 
-    printf("\n\n");
-    
 }
 
 
