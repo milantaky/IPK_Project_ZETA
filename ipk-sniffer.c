@@ -195,12 +195,15 @@ int main(int argc, char** argv){
         return 1;
     }
 
+    // TODO: Filtr
     // compile
     // setfilter
 
-    pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle);
 
-
+    if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
+        fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
+        return 1;
+    }
 
     pcap_close(handle);
 
