@@ -217,14 +217,12 @@ int main(int argc, char** argv){
     chytej dalsi                                                                    DONE
     */
 
-
-    int timeout = 10000;                            // v ms - 10s
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
     pcap_t *handle;                                 // kam se bude chytat
 
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
-    if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, timeout, errBuff)) == NULL){
+    if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, 1000, errBuff)) == NULL){
         fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
         return 1;
     }
@@ -348,6 +346,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     if(linkType != DLT_EN10MB) return;
 
     vypisInfoOPacketu(packetHeader, packetBody);
+    
     // ROZDELENI PACKETU --------------------------------------------
         // int protocolType = ntohs(ethHeader->ether_type);      NEFUNGUJE
         // Proto se to deli podle manualniho nalezeni ether_type v packetu - jsou to jen LINKTYPE_ETHERNET, takze jine typy mi sem neprijdou (filtr)
@@ -356,23 +355,30 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     memcpy(type, &packetBody[12], 2);
     type[2] = '\0';
 
-    //Type ARP : 08 06
+    // kazdy typ ma ip adresu na stejnem miste
+    // ipv4 src indexy 26-29 dst 30-33
+    // ipv6 src 22-37 dst 38-53
+    // arp src 28-31 dst 38-41  ??
+
+    // Type ARP : 08 06
     if(type[0] == 8 && type[1] == 6) {
         printf("arp\n");
     }
 
-    //Type IPv4: 08 00
+    // Type IPv4: 08 00 -> TCP, UDP, ICMPv4, IGMP
     if(type[0] == 8 && type[1] == 0){
         printf("ipv4\n");
     }
 
-    //Type IPv6: 86 dd
+    // Type IPv6: 86 dd -> ICMPv6, MLD, NDP 
     if(type[0] == 134 && type[1] == 221){
          printf("ipv6\n");
     }
 
+    // Type: resit REVARP?
 
-    // // TODO: Timestamp
+
+    // // TODO: Timestamp - i guess ze kdy to prislo
 
     // // Zjisteni src/dest MAC adresy - mozna hodit do fce
     // // ZDROJ: https://linux.die.net/man/3/ether_ntoa
@@ -402,8 +408,8 @@ void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
     // Zjisteni src/dest MAC adresy - mozna hodit do fce
     // ZDROJ: https://linux.die.net/man/3/ether_ntoa
     struct ether_header *ethHeader = (struct ether_header *) header;
-    struct ether_addr *srcMAC  = (struct ether_addr *) ethHeader->ether_shost;
-    struct ether_addr *destMAC = (struct ether_addr *) ethHeader->ether_dhost;
+    struct ether_addr *srcMAC      = (struct ether_addr *) ethHeader->ether_shost;
+    struct ether_addr *destMAC     = (struct ether_addr *) ethHeader->ether_dhost;
 
     // TODO: upravit vypsani podle toho pojebanyho RFC
     printf("src MAC: %s\n", ether_ntoa(srcMAC));
@@ -415,7 +421,6 @@ void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
     // TODO: IP adresy
     
     // TODO: porty - jen u udp, tcp
-
 
 
 
