@@ -18,12 +18,10 @@ void vypisPacket(const u_char *packetos, int delka);
 int main(int argc, char** argv){
     char interface[20];
     int pocetPacketu = 1;                   // Defaultne
-    char filteros[512] = "";                // 512 protoze nejdelsi retezec muze byt 506
+    char filteros[2048] = "";               
     int pocetProtokolu = 0;
     int port = -1;      
     int interfaceSet = 0;    
-    // int tcpSet = 0;
-    // int udpSet = 0;
     
 // Zpracovani prepinacu ---------------------------------------------------------------------
     if(argc == 1) {
@@ -62,11 +60,12 @@ int main(int argc, char** argv){
                             fprintf(stderr, "CHYBA: Neplatny argument za -p (musi byt cislo vetsi 0): %s\n", argv[argN]);
                             return 1;
                         }
-                        //continue;
                     } else {
                         fprintf(stderr, "CHYBA: Chybi argument za -p.\n");
                         return 1;
                     }    
+
+                    // All arguments can be in any order -> {-p port [--tcp|-t] [--udp|-u]} - tohle chapu jako ze p musi byt vzdy pred tcp/udp
                 } 
                 else if(strcmp(argv[argN], "-n") == 0){  // -n
                     if(argv[argN + 1] != NULL){
@@ -75,7 +74,6 @@ int main(int argc, char** argv){
                             fprintf(stderr, "CHYBA: Neplatny argument za -n (musi byt cislo vetsi 0): %s\n", argv[argN]);
                             return 1;
                         }    
-                        //continue; 
                     } else {
                         fprintf(stderr, "CHYBA: Chybi argument za -n.\n");
                         return 1;
@@ -102,8 +100,7 @@ int main(int argc, char** argv){
                             strcat(filteros, " or tcp");
                         }
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
                 else if(strcmp(argv[argN], "-u") == 0 || strcmp(argv[argN], "--udp") == 0){   // UDP -u --udp
                     if(!pocetProtokolu){
@@ -125,8 +122,7 @@ int main(int argc, char** argv){
                             strcat(filteros, " or udp");
                         }
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
                 else if(strcmp(argv[argN], "--icmp4") == 0){    // ICMPv4 --icmp4             
                     if(!pocetProtokolu){
@@ -134,17 +130,15 @@ int main(int argc, char** argv){
                     } else {
                         strcat(filteros, " or icmp");
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
-                else if(strcmp(argv[argN], "--icmp6") == 0){    // ICMPv6 --icmp6
+                else if(strcmp(argv[argN], "--icmp6") == 0){    // ICMPv6 --icmp6 -> jenom request/reply
                     if(!pocetProtokolu){
-                        strcat(filteros, "icmp6");
+                        strcat(filteros, "(icmp6 and (ip6[40] = 128 or ip6[40] = 129))");
                     } else {
-                        strcat(filteros, " or icmp6");
+                        strcat(filteros, " or (icmp6 and (ip6[40] = 128 or ip6[40] = 129))");
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
                 else if(strcmp(argv[argN], "--arp") == 0){      // ARP --arp
                     if(!pocetProtokolu){
@@ -152,8 +146,7 @@ int main(int argc, char** argv){
                     } else {
                         strcat(filteros, " or arp");
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
                 else if(strcmp(argv[argN], "--ndp") == 0){      // NDP --ndp
                     if(!pocetProtokolu){
@@ -161,8 +154,7 @@ int main(int argc, char** argv){
                     } else {
                         strcat(filteros, " or (icmp6 and (ip6[40] = 133 or ip6[40] = 134 or ip6[40] = 135 or ip6[40] = 136 or ip6[40] = 137))");
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
                 else if(strcmp(argv[argN], "--igmp") == 0){     // IGMP --igmp
                     if(!pocetProtokolu){
@@ -170,8 +162,7 @@ int main(int argc, char** argv){
                     } else {
                         strcat(filteros, " or igmp");
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 }
                 else if(strcmp(argv[argN], "--mld") == 0){      // MLD --mld
                     if(!pocetProtokolu){
@@ -179,8 +170,7 @@ int main(int argc, char** argv){
                     } else {
                         strcat(filteros, " or (icmp6 and (ip6[40] = 143))");
                     }
-                        pocetProtokolu++;
-                    //continue;
+                    pocetProtokolu++;
                 } 
                 else {        // Pokud to doslo az sem, je to neplatny argument
                     fprintf(stderr, "CHYBA: neplatny argument: %s\n", argv[argN]);
@@ -254,7 +244,7 @@ int main(int argc, char** argv){
         }
     }                           //      igmp, arp, icmp6 (jeho soucasti je MLD)
 
-    // Sbirani packetu
+    // Chytani packetu -----------------------------------------------------------------
     if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
         fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
         return 1;
@@ -288,6 +278,20 @@ Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde   DONE
                                                             // --igmp (will display only IGMP packets).
 --mld (will display only MLD packets).
     -- icmpv6 type 143
+
+// TCP
+// UDP
+// ARP
+// ICMPv6
+    // NDP
+    // MLD
+// ICMPv4
+// IGMP
+
+
+
+
+
 */
 
 
