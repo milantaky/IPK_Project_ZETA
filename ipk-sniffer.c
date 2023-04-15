@@ -5,12 +5,14 @@
 #include <pcap.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
+#include <netinet/if_ether.h>
 
 #define MAX_PACKET_SIZE 65535
 
 int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
+void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body);
 void vypisPacket(const u_char *packetos, int delka);
 
 // TODO: interrupt signal
@@ -345,12 +347,61 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     int linkType = pcap_datalink((pcap_t *) user);
     if(linkType != DLT_EN10MB) return;
 
-    // TODO: Timestamp
+    vypisInfoOPacketu(packetHeader, packetBody);
+    // ROZDELENI PACKETU --------------------------------------------
+        // int protocolType = ntohs(ethHeader->ether_type);      NEFUNGUJE
+        // Proto se to deli podle manualniho nalezeni ether_type v packetu - jsou to jen LINKTYPE_ETHERNET, takze jine typy mi sem neprijdou (filtr)
 
+    unsigned char type[3] = "";
+    memcpy(type, &packetBody[12], 2);
+    type[2] = '\0';
+
+    //Type ARP : 08 06
+    if(type[0] == 8 && type[1] == 6) {
+        printf("arp\n");
+    }
+
+    //Type IPv4: 08 00
+    if(type[0] == 8 && type[1] == 0){
+        printf("ipv4\n");
+    }
+
+    //Type IPv6: 86 dd
+    if(type[0] == 134 && type[1] == 221){
+         printf("ipv6\n");
+    }
+
+
+    // // TODO: Timestamp
+
+    // // Zjisteni src/dest MAC adresy - mozna hodit do fce
+    // // ZDROJ: https://linux.die.net/man/3/ether_ntoa
+    // struct ether_header *ethHeader = (struct ether_header *) packetHeader;
+    // struct ether_addr *srcMAC  = (struct ether_addr *) ethHeader->ether_shost;
+    // struct ether_addr *destMAC = (struct ether_addr *) ethHeader->ether_dhost;
+
+    // // TODO: upravit vypsani podle toho pojebanyho RFC
+    // printf("src MAC: %s\n", ether_ntoa(srcMAC));
+    // printf("dst MAC: %s\n", ether_ntoa(destMAC));
+
+    // printf("frame length: %d bytes\n", packetHeader->len);
+    
+    // // TODO: IP adresy
+    // // TODO: porty - jen u udp, tcp
+
+    // // Vypis obsahu packetu
+    vypisPacket(packetBody, packetHeader->caplen);
+
+    printf("\n\n");
+    
+}
+
+void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
+    // TODO: Timestamp
 
     // Zjisteni src/dest MAC adresy - mozna hodit do fce
     // ZDROJ: https://linux.die.net/man/3/ether_ntoa
-    struct ether_header *ethHeader = (struct ether_header *) packetHeader;
+    struct ether_header *ethHeader = (struct ether_header *) header;
     struct ether_addr *srcMAC  = (struct ether_addr *) ethHeader->ether_shost;
     struct ether_addr *destMAC = (struct ether_addr *) ethHeader->ether_dhost;
 
@@ -358,16 +409,16 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     printf("src MAC: %s\n", ether_ntoa(srcMAC));
     printf("dst MAC: %s\n", ether_ntoa(destMAC));
 
-    printf("frame length: %d bytes\n", packetHeader->len);
-    
+    printf("frame length: %d bytes\n", header->len);
+    printf("aby to drzelo picu%s\n", body);
+
     // TODO: IP adresy
+    
     // TODO: porty - jen u udp, tcp
 
-    // Vypis obsahu packetu
-    vypisPacket(packetBody, packetHeader->caplen);
 
-    printf("\n\n");
-    
+
+
 }
 
 // Vypise obsah celeho packetu
