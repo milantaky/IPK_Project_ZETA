@@ -87,23 +87,17 @@ int main(int argc, char** argv){
                         if(port > 0){  // Je nastaveny port, muze byt u src i dest
                             char port_str[10];
                             sprintf(port_str, "%d", port);
-                            strcat(filteros, "(tcp and src port ");
+                            strcat(filteros, "tcp port ");
                             strcat(filteros, port_str);
-                            strcat(filteros, ") or (tcp and dest port ");
-                            strcat(filteros, port_str);
-                            strcat(filteros, ")");
                         } else {
                             strcat(filteros, "tcp");
                         }
                     } else {
                         if(port > 0){
                             char port_str[10];
-                            sprintf(port_str, "%d", port);
-                            strcat(filteros, " or (tcp and src port ");
+                            sprintf(port_str, "%d", port);      // mozna uzavorkovat
+                            strcat(filteros, " or tcp port ");;
                             strcat(filteros, port_str);
-                            strcat(filteros, ") or (tcp and dest port ");
-                            strcat(filteros, port_str);
-                            strcat(filteros, ")");
                         } else {
                             strcat(filteros, " or tcp");
                         }
@@ -116,23 +110,17 @@ int main(int argc, char** argv){
                         if(port > 0){  // Je nastaveny port, muze byt u src i dest
                             char port_str[10];
                             sprintf(port_str, "%d", port);
-                            strcat(filteros, "(udp and src port ");
+                            strcat(filteros, "udp port ");
                             strcat(filteros, port_str);
-                            strcat(filteros, ") or (udp and dest port ");
-                            strcat(filteros, port_str);
-                            strcat(filteros, ")");
                         } else {
                             strcat(filteros, "udp");
                         }
                     } else {
                         if(port > 0){
-                            char port_str[10];
+                            char port_str[10];      // mozna uzavorkovat
                             sprintf(port_str, "%d", port);
-                            strcat(filteros, " or (udp and src port ");
+                            strcat(filteros, " or udp port ");
                             strcat(filteros, port_str);
-                            strcat(filteros, ") or (udp and dest port ");
-                            strcat(filteros, port_str);
-                            strcat(filteros, ")");
                         } else {
                             strcat(filteros, " or udp");
                         }
@@ -280,16 +268,16 @@ int main(int argc, char** argv){
 /*
 Pokud je jen -i nebo --interface, vypis aktivni rozhrani                DONE
 Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde   DONE
--p doplnuje TCP/UDP, ale nemusi. muze byt jako src i dest               
-    -t --tcp
-    -u --udp
+-p doplnuje TCP/UDP, ale nemusi. muze byt jako src i dest               DONE nejspis         
+    -t --tcp                                                            DONE
+    -u --udp                                                            DONE
 -n pocet packetu - default 1                                            DONE
 
 // ---------------- TEST
 // bere to :
-    // ARP, IGMP, NDP
+    // ARP, IGMP, NDP, UDP s portem, TCP s portem
 // melo by :
-    // mld (neprisel zadny), TCP - bere to i TLS, ale to bezi na TCP
+    // icmpv6, snad icmpv4, mld (neprisel zadny), TCP - bere to i TLS, ale to bezi na TCP, UDP - same QUIC, DNS
 
 --icmp4 (will display only ICMPv4 packets).
 --icmp6 (will display only ICMPv6 echo request/response).
