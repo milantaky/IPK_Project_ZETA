@@ -419,8 +419,8 @@ void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
     struct ether_addr *destMAC     = (struct ether_addr *) ethHeader->ether_dhost;
 
     // TODO: upravit vypsani podle toho pojebanyho RFC
-    printf("src MAC: %s\n", ether_ntoa(srcMAC));
-    printf("dst MAC: %s\n", ether_ntoa(destMAC));
+    printf("src MAC: %s\n",( char*) ether_ntoa(srcMAC));
+    printf("dst MAC: %s\n", (char*) ether_ntoa(destMAC));
 
     printf("frame length: %d bytes\n", header->len);
     printf("aby to drzelo picu%s\n", body);
