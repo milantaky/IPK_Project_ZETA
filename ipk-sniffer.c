@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
 #include <netinet/if_ether.h>
+#include <time.h>
 
 #define MAX_PACKET_SIZE 65535
 
@@ -13,9 +14,11 @@ int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body);
+void vytiskniTimestamp();
 void vypisPacket(const u_char *packetos, int delka);
 
-// TODO: interrupt signal
+// TODO : interrupt signal
+// TODO : timestamp doladit
 
 int main(int argc, char** argv){
     char interface[20];
@@ -360,9 +363,13 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // ipv6 src 22-37 dst 38-53
     // arp src 28-31 dst 38-41  ??
 
+    // TCP porty src 34-35 dst 36-37
+    // UDP porty same
+
     // Type ARP : 08 06
     if(type[0] == 8 && type[1] == 6) {
         printf("arp\n");
+
     }
 
     // Type IPv4: 08 00 -> TCP, UDP, ICMPv4, IGMP
@@ -377,25 +384,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 
     // Type: resit REVARP?
 
-
-    // // TODO: Timestamp - i guess ze kdy to prislo
-
-    // // Zjisteni src/dest MAC adresy - mozna hodit do fce
-    // // ZDROJ: https://linux.die.net/man/3/ether_ntoa
-    // struct ether_header *ethHeader = (struct ether_header *) packetHeader;
-    // struct ether_addr *srcMAC  = (struct ether_addr *) ethHeader->ether_shost;
-    // struct ether_addr *destMAC = (struct ether_addr *) ethHeader->ether_dhost;
-
-    // // TODO: upravit vypsani podle toho pojebanyho RFC
-    // printf("src MAC: %s\n", ether_ntoa(srcMAC));
-    // printf("dst MAC: %s\n", ether_ntoa(destMAC));
-
-    // printf("frame length: %d bytes\n", packetHeader->len);
-    
-    // // TODO: IP adresy
-    // // TODO: porty - jen u udp, tcp
-
-    // // Vypis obsahu packetu
+    // Vypis obsahu packetu
     vypisPacket(packetBody, packetHeader->caplen);
 
     printf("\n\n");
@@ -403,7 +392,8 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 }
 
 void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
-    // TODO: Timestamp
+    // TODO: Timestamp - hadam ze kdy to prislo - mozna do callbacku
+    vytiskniTimestamp();
 
     // Zjisteni src/dest MAC adresy - mozna hodit do fce
     // ZDROJ: https://linux.die.net/man/3/ether_ntoa
@@ -426,6 +416,24 @@ void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
 
 }
 
+void vytiskniTimestamp(){
+
+    char timestamp[50];
+    time_t now = time(NULL);
+    struct tm *tm_now = gmtime(&now);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S.%ms%z", tm_now);
+
+    // TODO
+    // char timestampMod[50] = "";
+    // memcpy(timestampMod, timestamp, 23);    // 2023-04-16T11:09:26.168
+    // //tady nejak vecpat jeste to .xxx nevim vole co to je
+    // char timeDiff[7] = "";
+    // memcpy(timeDiff, timestamp[sem doplnit index plusu]);
+
+
+    printf("timestamp: %s\n", timestamp);
+}
+
 // Vypise obsah celeho packetu
 void vypisPacket(const u_char *packetos, int delka){
 
@@ -433,7 +441,7 @@ void vypisPacket(const u_char *packetos, int delka){
     int zbyvaDopsat = (delka) % 16;
     for (int i = 0; i < delka; i++) {
         // byte_offset - vymyslet lip
-        if(i % 16 == 0 && i == 0) printf("0x%05x: ", i);
+        if(i % 16 == 0 && i == 0) printf("0x%04x: ", i);
 
         if(i != 0 && i % 16 == 0){              // Je to posledni pismeno na radku? (krom 1.)
             for(int j = i - 16; j < i; j++){
@@ -445,7 +453,7 @@ void vypisPacket(const u_char *packetos, int delka){
                 if(j == i - 9) printf(" ");
             }
             printf("\n");
-            printf("0x%05x: ", i);
+            printf("0x%04x: ", i);
         }
 
         printf("%02x ", packetos[i]);
