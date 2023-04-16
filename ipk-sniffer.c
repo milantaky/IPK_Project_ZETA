@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <types.h>
 #include <pcap.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
@@ -423,8 +424,6 @@ void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
     
     // TODO: porty - jen u udp, tcp
 
-
-
 }
 
 void vytiskniTimestamp(){
@@ -500,6 +499,7 @@ void vypisPacket(const u_char *packetos, int delka){
 
 }
 
+// Vypise zdrojovou a cilovou IPv4 adresu
 void vypisIPv4(const u_char *packet ,int src, int dest){
     
     u_char srcAddress[5];
