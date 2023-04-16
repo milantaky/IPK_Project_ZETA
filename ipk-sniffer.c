@@ -15,10 +15,13 @@ int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body);
 void vytiskniTimestamp();
+void vypisIPv4(const u_char *packet ,int src, int dest);
 void vypisPacket(const u_char *packetos, int delka);
 
 // TODO : interrupt signal
 // TODO : timestamp doladit
+// TODO : https://moodle.vut.cz/mod/forum/discuss.php?d=2167
+// TODO : dodelat porty
 
 int main(int argc, char** argv){
     char interface[20];
@@ -234,7 +237,6 @@ int main(int argc, char** argv){
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_compile.3pcap.html
 
     if(pocetProtokolu){
-        printf("Nastavuji filter\n");
         struct bpf_program pFilter; 
         if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
             fprintf(stderr, "CHYBA: Prelozeni filtru:\n       %s\n", pcap_geterr(handle));
@@ -363,18 +365,27 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // ipv6 src 22-37 dst 38-53
     // arp src 28-31 dst 38-41  ??
 
-    // TCP porty src 34-35 dst 36-37
-    // UDP porty same
 
     // Type ARP : 08 06
     if(type[0] == 8 && type[1] == 6) {
         printf("arp\n");
+        vypisIPv4(packetBody, 28, 38);
 
     }
 
     // Type IPv4: 08 00 -> TCP, UDP, ICMPv4, IGMP
     if(type[0] == 8 && type[1] == 0){
         printf("ipv4\n");
+        vypisIPv4(packetBody, 26, 30);
+
+        // // Je to TCP/UDP ?
+        // u_char portyTaky[2];
+        // portyTaky[0] = &packetBody[23];
+        // portyTaky[1] = '\0';
+
+        // // Porty u TCP a UDP vypisuji vzdy
+        // if(portyTaky == 6 || portyTaky == 17){}
+        //     //vypisPorty(34, 36); // TCP/UDP porty src 34-35 dst 36-37
     }
 
     // Type IPv6: 86 dd -> ICMPv6, MLD, NDP 
@@ -486,5 +497,33 @@ void vypisPacket(const u_char *packetos, int delka){
             }
         }
     }
+
+}
+
+void vypisIPv4(const u_char *packet ,int src, int dest){
+    
+    u_char srcAddress[5];
+    u_char destAddress[5];
+    memcpy(srcAddress, &packet[src], 4);
+    memcpy(destAddress, &packet[dest], 4);
+    srcAddress[4] = '\0';
+    destAddress[4] = '\0';
+    
+    printf("src IP: ");
+    for(int i = 0; i < 4; i++){
+        if(i != 3)
+        printf("%u.", srcAddress[i]);
+            else
+        printf("%u", srcAddress[i]);
+    }
+
+    printf("\ndst IP: ");
+    for(int i = 0; i < 4; i++){
+        if(i != 3)
+        printf("%u.", destAddress[i]);
+            else
+        printf("%u", destAddress[i]);
+    }
+    printf("\n");
 
 }
