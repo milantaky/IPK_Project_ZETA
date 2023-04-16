@@ -22,8 +22,9 @@ int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body);
 void vytiskniTimestamp();
-void vypisIPv4(const u_char *packet ,int src, int dest);
-void vypisPacket(const u_char *packetos, int delka);
+void vytiskniMAC(const u_char *body);
+void vytiskniIPv4(const u_char *packet ,int src, int dest);
+void vytiskniObsah(const u_char *packetos, int delka);
 
 // TODO : interrupt signal
 // TODO : timestamp doladit
@@ -215,21 +216,6 @@ int main(int argc, char** argv){
     printf("pocetProtokolu %d\n", pocetProtokolu);
     printf("--------------------------------------\n\n");
 
-    /*
-    nastavene protokoly?                                                            DONE
-        -> nastav filter                                                            DONE
-        -> zkompiluj                                                                DONE
-        -> set filter                                                               DONE
-        -> test
-    otevri interface pro live           pcap_open_live                              DONE
-    nacti packet        |   pcap_loop                                               DONE
-    zpracuj             |
-        -> procti hlavicku
-            -> vypis info
-        -> napis offset: hexa zprava  -  normal zprava (netiskutelny znak = .)      DONE
-    chytej dalsi                                                                    DONE
-    */
-
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
     pcap_t *handle;                                 // kam se bude chytat
@@ -267,29 +253,21 @@ int main(int argc, char** argv){
     return 0;
 }
 
-/*
-Pokud je jen -i nebo --interface, vypis aktivni rozhrani                DONE
-Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde   DONE
--p doplnuje TCP/UDP, ale nemusi. muze byt jako src i dest               DONE nejspis         
-    -t --tcp                                                            DONE
-    -u --udp                                                            DONE
--n pocet packetu - default 1                                            DONE
-
 // ---------------- TEST
 // bere to :
     // ARP, IGMP, NDP, UDP s portem, TCP s portem
 // melo by :
     // icmpv6, snad icmpv4, mld (neprisel zadny), TCP - bere to i TLS, ale to bezi na TCP, UDP - same QUIC, DNS
 
---icmp4 (will display only ICMPv4 packets).
---icmp6 (will display only ICMPv6 echo request/response).
-    -- request - 128, reply - 129 
-                                                            // --arp (will display only ARP frames).                                   
-                                                            // --ndp (will display only ICMPv6 NDP packets).
-                                                            //     -- types 133-137 u icmpv6
-                                                            // --igmp (will display only IGMP packets).
---mld (will display only MLD packets).
-    -- icmpv6 type 143
+// --icmp4 (will display only ICMPv4 packets).
+// --icmp6 (will display only ICMPv6 echo request/response).
+//     -- request - 128, reply - 129 
+//                                                             // --arp (will display only ARP frames).                                   
+//                                                             // --ndp (will display only ICMPv6 NDP packets).
+//                                                             //     -- types 133-137 u icmpv6
+//                                                             // --igmp (will display only IGMP packets).
+// --mld (will display only MLD packets).
+//     -- icmpv6 type 143
 
 // TCP
 // UDP
@@ -299,14 +277,6 @@ Pokud je jen -i nebo --interface a hodnota, ber vsechno co na nej jde   DONE
     // MLD
 // ICMPv4
 // IGMP
-
-
-
-
-
-*/
-
-
 
 
 
@@ -357,8 +327,12 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     int linkType = pcap_datalink((pcap_t *) user);
     if(linkType != DLT_EN10MB) return;
 
-    vypisInfoOPacketu(packetHeader, packetBody);
+    //vypisInfoOPacketu(packetHeader, packetBody);
     
+    vytiskniTimestamp();
+    vytiskniMAC(packetBody);
+
+    printf("frame length: %d bytes\n", packetHeader->len);
     // ROZDELENI PACKETU --------------------------------------------
         // int protocolType = ntohs(ethHeader->ether_type);      NEFUNGUJE
         // Proto se to deli podle manualniho nalezeni ether_type v packetu - jsou to jen LINKTYPE_ETHERNET, takze jine typy mi sem neprijdou (filtr)
@@ -367,23 +341,16 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     memcpy(type, &packetBody[12], 2);
     type[2] = '\0';
 
-    // kazdy typ ma ip adresu na stejnem miste
-    // ipv4 src indexy 26-29 dst 30-33
-    // ipv6 src 22-37 dst 38-53
-    // arp src 28-31 dst 38-41  ??
-
-
     // Type ARP : 08 06
     if(type[0] == 8 && type[1] == 6) {
         printf("arp\n");
-        vypisIPv4(packetBody, 28, 38);
-
+        vytiskniIPv4(packetBody, 28, 38);   // arp src 28-31 dst 38-41  
     }
 
     // Type IPv4: 08 00 -> TCP, UDP, ICMPv4, IGMP
     if(type[0] == 8 && type[1] == 0){
         printf("ipv4\n");
-        vypisIPv4(packetBody, 26, 30);
+        vytiskniIPv4(packetBody, 26, 30); // ipv4 src indexy 26-29 dst 30-33
 
         // // Je to TCP/UDP ?
         // u_char portyTaky[2];
@@ -398,37 +365,33 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // Type IPv6: 86 dd -> ICMPv6, MLD, NDP 
     if(type[0] == 134 && type[1] == 221){
          printf("ipv6\n");
+         // ipv6 src 22-37 dst 38-53
     }
 
     // Type: resit REVARP?
 
-    // Vypis obsahu packetu
-    vypisPacket(packetBody, packetHeader->caplen);
+    vytiskniObsah(packetBody, packetHeader->caplen);
 
     printf("\n\n");
     
 }
 
-void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body){
-    // TODO: Timestamp - hadam ze kdy to prislo - mozna do callbacku
-    vytiskniTimestamp();
+void vytiskniMAC(const u_char *body){
+    // DST indexy 0-5
+    // SRC indexy 6-11
 
-    // Zjisteni src/dest MAC adresy - mozna hodit do fce
-    // ZDROJ: https://linux.die.net/man/3/ether_ntoa
-    struct ether_header *ethHeader = (struct ether_header *) header;
-    struct ether_addr *srcMAC      = (struct ether_addr *) ethHeader->ether_shost;
-    struct ether_addr *destMAC     = (struct ether_addr *) ethHeader->ether_dhost;
+    printf("src MAC: ");
+    for(int i = 6; i < 11; i++){
+        printf("%02x:", body[i]);
+    }
+    printf("%02x\n", body[11]);
 
-    // TODO: upravit vypsani podle toho pojebanyho RFC
-    printf("src MAC: %s\n",( char*) ether_ntoa(srcMAC));
-    printf("dst MAC: %s\n", (char*) ether_ntoa(destMAC));
 
-    printf("frame length: %d bytes\n", header->len);
-    printf("aby to drzelo picu%s\n", body);
-
-    // TODO: IP adresy
-    
-    // TODO: porty - jen u udp, tcp
+    printf("dst MAC: ");
+    for(int i = 0; i < 5; i++){
+        printf("%02x:", body[i]);
+    }
+    printf("%02x\n", body[5]);
 
 }
 
@@ -451,7 +414,7 @@ void vytiskniTimestamp(){
 }
 
 // Vypise obsah celeho packetu
-void vypisPacket(const u_char *packetos, int delka){
+void vytiskniObsah(const u_char *packetos, int delka){
 
     printf("\n");
     int zbyvaDopsat = (delka) % 16;
@@ -506,7 +469,7 @@ void vypisPacket(const u_char *packetos, int delka){
 }
 
 // Vypise zdrojovou a cilovou IPv4 adresu
-void vypisIPv4(const u_char *packet ,int src, int dest){
+void vytiskniIPv4(const u_char *packet ,int src, int dest){
     
     u_char srcAddress[5];
     u_char destAddress[5];
