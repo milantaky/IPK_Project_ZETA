@@ -4,7 +4,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <stdint.h>
-#include <pcap.h>
+#include <pcap/pcap.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
 #include <netinet/if_ether.h>
