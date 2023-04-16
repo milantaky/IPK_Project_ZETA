@@ -11,6 +11,7 @@ typedef unsigned short u_short;
 #include <pcap/pcap.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
+#include <netinet/ether.h>
 #include <netinet/if_ether.h>
 #include <time.h>
 
