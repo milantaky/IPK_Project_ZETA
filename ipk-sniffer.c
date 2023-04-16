@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <types.h>
+#include <sys/types.h>
 #include <pcap.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
