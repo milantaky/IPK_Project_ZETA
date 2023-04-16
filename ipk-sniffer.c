@@ -120,7 +120,7 @@ int main(int argc, char** argv){
                 else if(strcmp(argv[argN], "-u") == 0 || strcmp(argv[argN], "--udp") == 0){   // UDP -u --udp
                     if(!pocetProtokolu){
                         if(port > 0){  // Je nastaveny port, muze byt u src i dest
-                            char port_str[11];
+                            char port_str[10];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, "udp port ");
                             strcat(filteros, port_str);
