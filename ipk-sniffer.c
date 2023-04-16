@@ -1,3 +1,7 @@
+typedef unsigned char u_char;
+typedef unsigned int  u_int;
+typedef unsigned short u_short;
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,9 +15,6 @@
 #include <time.h>
 
 #define MAX_PACKET_SIZE 65535
-typedef unsigned char u_char;
-typedef unsigned int  u_int;
-typedef unsigned short u_short;
 
 int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
