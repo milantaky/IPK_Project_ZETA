@@ -11,7 +11,7 @@ typedef unsigned short u_short;
 #include <pcap/pcap.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
-#include <netinet/ether.h>
+//#include <netinet/ether.h>
 #include <netinet/if_ether.h>
 #include <time.h>
 
@@ -120,7 +120,7 @@ int main(int argc, char** argv){
                 else if(strcmp(argv[argN], "-u") == 0 || strcmp(argv[argN], "--udp") == 0){   // UDP -u --udp
                     if(!pocetProtokolu){
                         if(port > 0){  // Je nastaveny port, muze byt u src i dest
-                            char port_str[10];
+                            char port_str[11];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, "udp port ");
                             strcat(filteros, port_str);
@@ -129,7 +129,7 @@ int main(int argc, char** argv){
                         }
                     } else {
                         if(port > 0){
-                            char port_str[10];      // mozna uzavorkovat
+                            char port_str[11];      // mozna uzavorkovat
                             sprintf(port_str, "%d", port);
                             strcat(filteros, " or udp port ");
                             strcat(filteros, port_str);
