@@ -98,7 +98,7 @@ int main(int argc, char** argv){
                 else if(strcmp(argv[argN], "-t") == 0 || strcmp(argv[argN], "--tcp") == 0){   // TCP -t --tcp
                     if(!pocetProtokolu){
                         if(port > 0){  // Je nastaveny port, muze byt u src i dest
-                            char port_str[10];
+                            char port_str[11];
                             sprintf(port_str, "%d", port);
                             strcat(filteros, "tcp port ");
                             strcat(filteros, port_str);
@@ -107,7 +107,7 @@ int main(int argc, char** argv){
                         }
                     } else {
                         if(port > 0){
-                            char port_str[10];
+                            char port_str[11];
                             sprintf(port_str, "%d", port);      // mozna uzavorkovat
                             strcat(filteros, " or tcp port ");;
                             strcat(filteros, port_str);
