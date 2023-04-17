@@ -61,7 +61,7 @@ Testování probíhalo na systému MACOS (Apple silicon), a OS NIX. Logy ve slo�
 zachyceného packetu.
 
 
-Výsledné outputy (logy) jsou vysniffovanými packety "zaslané" pomocí `tcpreplay`. Poskytnuty jsou i stejnojmenné pcap soubory, které byly zasílány. U TCP a UDP byl limit 5 packetů.
+Výsledné outputy (logy) jsou vysniffovanými packety "zaslané" pomocí `tcpreplay`[2]. Poskytnuty jsou i stejnojmenné pcap soubory, které byly zasílány. U TCP a UDP byl limit 5 packetů.
 
 **Zdroje**
 ===
