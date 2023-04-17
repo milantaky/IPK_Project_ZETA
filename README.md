@@ -1,6 +1,7 @@
 IPK - Projekt ZETA: Network sniffer
 ===
 **Autor:** Milan Takac - xtakac09
+
 2BIT FIT VUT 
 
 O Projektu:
@@ -42,7 +43,8 @@ Následně se packet zpracuje podle funkce v její hlavičce. Pak vytiskne zákl
 * Zdrojovou a cílovou MAC adresu 
 * Délku packetu
 * Zdrojovou a cílovou IP adresu
-* Obsah packetu;
+* Obsah packetu
+
 Jakmile je zpracován požadovaný počet packetů, uvolní se filtr, interface se uzavře, a program se ukončí.
 Když nastane při běhu programu nějaká chyba, program se ukončí a vztiskne se příslušná chybová hláška.
 Program je připraven i na přijmutí `C-c` (interrupt) signálu.
@@ -55,3 +57,7 @@ Jediné s čím má program problém jsou `MLD` packety, nechce je zachytávat.
 ---
 * Nejvíce se mi osvedčilo spouštět s programem WireShark a následně kontrolovat vypsané packety
 * Dobré k testování konkrétních protokolů je stažení pcap souboru a "odeslání" aplikací `tcpreplay`.
+
+**Zdroje**
+===
+Práce s pcap funkcemi - [tcpdump](https://www.tcpdump.org).
