@@ -38,11 +38,6 @@ void zpracujIPv6(const u_char *packet, int src);
 void vypisPorty(const u_char *packet, int src, int dst);
 void vytiskniObsah(const u_char *packetos, int delka);
 
-
-
-// TODO : interrupt signal
-// TODO : timestamp doladit
-
 int main(int argc, char** argv){
     signal(SIGINT, intHandler);
     char interface[20] = "";
@@ -393,7 +388,7 @@ void vytiskniTimestamp(){
 
     char timestamp[30];
     time_t now = time(NULL);
-    struct tm *tm_now = gmtime(&now);
+    struct tm *tm_now = localtime(&now);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S%z", tm_now);
 
     //.xxx za casem nespecifikovano
