@@ -518,15 +518,12 @@ void zpracujIPv6(const u_char *packet, int src){
     int k = 0;
     for(int i = 0; i < 16; i++){
         source[k] = sourceRaw[i];
-        printf("%02x", (unsigned char) source[k]);
         if((i+1) % 2 == 0 && i != 15){
             k++;
             source[k] = 58;
-            printf(":");
         }
         k++;
     }
-    printf("\n");
 
     // Nalezeni indexu nejdelsiho retezce 0
     int delkaPole = 16;
@@ -555,7 +552,6 @@ void zpracujIPv6(const u_char *packet, int src){
     for(int i = 0; i < start + start/2; i++){
         finalSource[i] = source[i];
     }
-    printf("\n");
 
 
     // Zbytek
@@ -575,10 +571,32 @@ void zpracujIPv6(const u_char *packet, int src){
 
     // TODO : doladit jeste ty nuly v segmentech
     for(int i = 0; i < start + 1 + 23 - odkud; i++){
-        if(finalSource[i] != 58)
+        if(finalSource[i] != 58){
+            if((unsigned char) finalSource[i] < 16){      // je tohle < 16
+                if(i == 0){             // je to prvni znak
+                    if((unsigned char) finalSource[i ] != 0)
+                        printf("%x", (unsigned char)finalSource[i]);
+                    continue;
+                } else {                
+                    if((unsigned char) finalSource[i - 1] == 0){    // predesly znak je 0
+                        printf("%x", (unsigned char)finalSource[i]); 
+                        continue;
+                    } else {
+                        if((unsigned char) finalSource[i - 1] == 58){
+                            if((unsigned char) finalSource[i ] != 0)
+                                printf("%x", (unsigned char)finalSource[i]);
+                            continue;
+                        } else {
+                            printf("%02x", (unsigned char)finalSource[i]); 
+                            continue;
+                        }
+                    }
+                }
+            }
             printf("%02x", (unsigned char)finalSource[i]);
-        else 
+        } else {
             printf(":");
+        } 
     }
 
 }
