@@ -31,6 +31,7 @@ Kde:
 * `--mld` (zobrazí pouze pakety MLD).
 Pokud nejsou protokoly výslovně zadány, jsou pro tisk brány v úvahu všechny (tj. veškerý obsah bez ohledu na protokol).
 * `-n 10` (určuje počet paketů, které se mají zobrazit, tj. "dobu", po kterou program běží; není-li zadáno, uvažuje se zobrazení pouze jednoho paketu, tj. jako při -n 1).
+
 Všechny argumenty mohou být v libovolném pořadí.
 
 **Teorie na pozadí**
