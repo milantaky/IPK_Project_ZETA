@@ -55,6 +55,7 @@ Jediné s čím má program problém jsou `MLD` packety, nechce je zachytávat.
 
 **Doporučení k testování**
 ---
+Testoval jsem na MACOS (Apple silicon), a OS NIX.
 * Nejvíce se mi osvedčilo spouštět s programem WireShark a následně kontrolovat vypsané packety
 * Dobré k testování konkrétních protokolů je stažení pcap souboru a "odeslání" aplikací `tcpreplay`.
 
