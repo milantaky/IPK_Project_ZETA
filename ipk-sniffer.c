@@ -10,14 +10,12 @@ typedef unsigned short u_short;
 #include <stdint.h>
 #include <pcap/pcap.h>
 #include <arpa/inet.h>
-#include <net/ethernet.h>   // pro praci s hlavickami -> ether_header
-//#include <netinet/ether.h>
+#include <net/ethernet.h>   
 #include <netinet/if_ether.h>
 #include <time.h>
 
 #define MAX_PACKET_SIZE 65535
 
-int zkontrolujPrepinace(int pocet, char** prepinace);
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
 void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body);
@@ -31,8 +29,6 @@ void vytiskniObsah(const u_char *packetos, int delka);
 
 // TODO : interrupt signal
 // TODO : timestamp doladit
-// TODO : https://moodle.vut.cz/mod/forum/discuss.php?d=2167
-// TODO : dodelat porty
 
 int main(int argc, char** argv){
     char interface[20];
@@ -75,10 +71,11 @@ int main(int argc, char** argv){
                 if(strcmp(argv[argN], "-p") == 0){       // -p 
                     if(argv[argN + 1] != NULL){
                         argN++;
-                        if(argv[argN][0] < 47 || argv[argN][0] > 58 || (port = atoi(argv[argN])) == 0 || port < 1){
-                            fprintf(stderr, "CHYBA: Neplatny argument za -p (musi byt cislo vetsi 0): %s\n", argv[argN]);
+                        if(argv[argN][0] < 47 || argv[argN][0] > 58 || (port = atoi(argv[argN])) == 0 || port < 1 || port > 65535){
+                            fprintf(stderr, "CHYBA: Neplatny argument za -p (musi byt cislo mezi 0(reserved) - 65535): %s\n", argv[argN]);
                             return 1;
                         }
+
                     } else {
                         fprintf(stderr, "CHYBA: Chybi argument za -p.\n");
                         return 1;
@@ -112,7 +109,7 @@ int main(int argc, char** argv){
                     } else {
                         if(port > 0){
                             char port_str[11];
-                            sprintf(port_str, "%d", port);      // mozna uzavorkovat
+                            sprintf(port_str, "%d", port);    
                             strcat(filteros, " or tcp port ");;
                             strcat(filteros, port_str);
                         } else {
@@ -133,7 +130,7 @@ int main(int argc, char** argv){
                         }
                     } else {
                         if(port > 0){
-                            char port_str[11];      // mozna uzavorkovat
+                            char port_str[11];     
                             sprintf(port_str, "%d", port);
                             strcat(filteros, " or udp port ");
                             strcat(filteros, port_str);
@@ -211,17 +208,17 @@ int main(int argc, char** argv){
 
     }      
 
-    printf("\n------------- MOJE INFO --------------\n");
-    printf("Interface: %s\n", interface);
-    printf("Filter: %s\n", filteros);
-    printf("Port %d\n", port);
-    printf("N %d\n", pocetPacketu);
-    printf("pocetProtokolu %d\n", pocetProtokolu);
-    printf("--------------------------------------\n\n");
+    // printf("\n------------- MOJE INFO --------------\n");
+    // printf("Interface: %s\n", interface);
+    // printf("Filter: %s\n", filteros);
+    // printf("Port %d\n", port);
+    // printf("N %d\n", pocetPacketu);
+    // printf("pocetProtokolu %d\n", pocetProtokolu);
+    // printf("--------------------------------------\n\n");
 
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
-    pcap_t *handle;                                 // kam se bude chytat
+    pcap_t *handle;     // kam se bude chytat
 
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
     if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, 1000, errBuff)) == NULL){
@@ -271,20 +268,6 @@ int main(int argc, char** argv){
 // ICMPv4
 // IGMP
 
-
-
-
-// Zkontroluje prepinace, a vraci 1, pokud je vse v poradku, jinak 0
-// Predpokladane spusteni: ./ipk-sniffer [-i interface | --interface interface] {-p port [--tcp|-t] [--udp|-u]} [--arp] [--icmp4] [--icmp6] [--igmp] [--mld] {-n num}
-int zkontrolujPrepinace(int pocet, char** prepinace){
-    printf("pocet: %d\n", pocet);
-    printf("arg: %s\n", prepinace[1]);
-
-
-
-
-    return 1;
-}
 
 // Vypise seznam aktivnich rozhrani
 // Vraci 1 pri chybe, jinak 0
@@ -339,7 +322,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 
     // Type IPv4: 08 00 -> TCP, UDP, ICMPv4, IGMP
     if(type[0] == 8 && type[1] == 0){
-        vytiskniIPv4(packetBody, 26, 30); // ipv4 src indexy 26-29 dst 30-33
+        vytiskniIPv4(packetBody, 26, 30);   // ipv4 src indexy 26-29 dst 30-33
 
         // Je to TCP/UDP ?
         unsigned char portyTaky[2];
@@ -348,7 +331,6 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 
         // Porty u TCP a UDP vypisuji vzdy
         if(portyTaky[0] == 6 || portyTaky[0] == 17){
-            printf("chci porty\n");
             vypisPorty(packetBody, 34, 36); // TCP/UDP porty src 34-35 dst 36-37
         }
     }
@@ -358,7 +340,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
         vytiskniIPv6(packetBody, 22, 38); // ipv6 src 22-37 dst 38-53
     }
 
-    // Type: resit REVARP?
+    // Type: resit REVARP? Ne
 
     vytiskniObsah(packetBody, packetHeader->caplen);
 
@@ -386,23 +368,26 @@ void vytiskniMAC(const u_char *body){
 
 }
 
-
+// Vytiskne timestamp
 void vytiskniTimestamp(){
 
     char timestamp[50];
     time_t now = time(NULL);
     struct tm *tm_now = gmtime(&now);
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S.%ms%z", tm_now);
+    strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S%z", tm_now);
 
-    // TODO
-    // char timestampMod[50] = "";
-    // memcpy(timestampMod, timestamp, 23);    // 2023-04-16T11:09:26.168
-    // //tady nejak vecpat jeste to .xxx nevim vole co to je
-    // char timeDiff[7] = "";
-    // memcpy(timeDiff, timestamp[sem doplnit index plusu]);
+    //.xxx za casem nespecifikovano
 
+    char timeMod[50] = "";
+    strncpy(timeMod, timestamp, strlen(timestamp));
 
-    printf("timestamp: %s\n", timestamp);
+    for(int i = (int) strlen(timestamp) + 1; i > (int) strlen(timestamp) - 2; i--){
+        timeMod[i] =  timeMod[i - 1];
+    }
+    timeMod[22] = ':';
+
+    printf("timestamp: %s\n", timeMod);
+
 }
 
 // Vypise obsah celeho packetu
@@ -411,7 +396,6 @@ void vytiskniObsah(const u_char *packetos, int delka){
     printf("\n");
     int zbyvaDopsat = (delka) % 16;
     for (int i = 0; i < delka; i++) {
-        // byte_offset - vymyslet lip
         if(i % 16 == 0 && i == 0) printf("0x%04x: ", i);
 
         if(i != 0 && i % 16 == 0){              // Je to posledni pismeno na radku? (krom 1.)
@@ -429,7 +413,6 @@ void vytiskniObsah(const u_char *packetos, int delka){
 
         printf("%02x ", packetos[i]);
 
-        // TODO: opravit aby to tu nebylo 3x
         // Tisknutelne/netisknutelne znaky
         if(i == delka - 1){                       // Konec vypsane zpravy - dopsat zbyle znaky
             if(zbyvaDopsat != 0){                       // Je posledni radek plny?
