@@ -26,6 +26,7 @@ void vytiskniMAC(const u_char *body);
 void vytiskniIPv4(const u_char *packet ,int src, int dest);
 void vytiskniIPv6(const u_char *packet ,int src, int dest);
 void zpracujIPv6(const u_char *packet, int src);
+void vypisPorty(const u_char *packet, int src, int dst);
 void vytiskniObsah(const u_char *packetos, int delka);
 
 // TODO : interrupt signal
@@ -333,28 +334,27 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 
     // Type ARP : 08 06
     if(type[0] == 8 && type[1] == 6) {
-        printf("arp\n");
         vytiskniIPv4(packetBody, 28, 38);   // arp src 28-31 dst 38-41  
     }
 
     // Type IPv4: 08 00 -> TCP, UDP, ICMPv4, IGMP
     if(type[0] == 8 && type[1] == 0){
-        printf("ipv4\n");
         vytiskniIPv4(packetBody, 26, 30); // ipv4 src indexy 26-29 dst 30-33
 
-        // // Je to TCP/UDP ?
-        // u_char portyTaky[2];
-        // portyTaky[0] = &packetBody[23];
-        // portyTaky[1] = '\0';
+        // Je to TCP/UDP ?
+        unsigned char portyTaky[2];
+        portyTaky[0] = packetBody[23];      // tam je typ ipv4 protokolu
+        portyTaky[1] = '\0';
 
-        // // Porty u TCP a UDP vypisuji vzdy
-        // if(portyTaky == 6 || portyTaky == 17){}
-        //     //vypisPorty(34, 36); // TCP/UDP porty src 34-35 dst 36-37
+        // Porty u TCP a UDP vypisuji vzdy
+        if(portyTaky[0] == 6 || portyTaky[0] == 17){
+            printf("chci porty\n");
+            vypisPorty(packetBody, 34, 36); // TCP/UDP porty src 34-35 dst 36-37
+        }
     }
 
     // Type IPv6: 86 dd -> ICMPv6, MLD, NDP 
     if(type[0] == 134 && type[1] == 221){
-        printf("ipv6\n");
         vytiskniIPv6(packetBody, 22, 38); // ipv6 src 22-37 dst 38-53
     }
 
@@ -385,6 +385,7 @@ void vytiskniMAC(const u_char *body){
     printf("%02x\n", body[5]);
 
 }
+
 
 void vytiskniTimestamp(){
 
@@ -495,14 +496,11 @@ void vytiskniIPv6(const u_char *packet ,int src, int dest){
     printf("\ndst IP: ");
     zpracujIPv6(packet, dest);
     printf("\n");
-
-
-
 }
 
+// Zpracuje najde v packetu IPv6 adresu a zpracuje podle RFC 5952
 void zpracujIPv6(const u_char *packet, int src){
     // delka ipv6 adresy je 16 indexu
-    // pokud je prvni 0, muzes druhou vypsat jako jednomistnou, jinak 02x -> ff02, ale ne ff2, pokud to neni 0ff2 asi
 
     // Nacteni IPv6 adresy
     int dest = src + 16;
@@ -569,7 +567,6 @@ void zpracujIPv6(const u_char *packet, int src){
         temp++;
     }
 
-    // TODO : doladit jeste ty nuly v segmentech
     for(int i = 0; i < start + 1 + 23 - odkud; i++){
         if(finalSource[i] != 58){
             if((unsigned char) finalSource[i] < 16){      // je tohle < 16
@@ -598,5 +595,41 @@ void zpracujIPv6(const u_char *packet, int src){
             printf(":");
         } 
     }
+
+}
+
+// Pro TCP/UDP - vypis src/dest portu
+void vypisPorty(const u_char *packet, int src, int dst){
+    
+    char sPort[3] = "";
+    char dPort[3] = "";
+
+    // Nacteni ASCII portu
+    sPort[0] = packet[src];
+    sPort[1] = packet[src + 1];
+    dPort[0] = packet[dst];
+    dPort[1] = packet[dst + 1];
+
+    // Prevod na int
+    int sourceFirst  = (int) sPort[0];
+    int sourceSecond = (int) sPort[1];
+
+    int destFirst  = (int) dPort[0];
+    int destSecond = (int) dPort[1];
+
+    // Uprava a bitovy posun
+    sourceFirst  = sourceFirst & 255;
+    sourceFirst  = sourceFirst << 8;
+    sourceSecond = sourceSecond & 255;
+
+    destFirst  = destFirst & 255;
+    destFirst  = destFirst << 8;
+    destSecond = destSecond & 255;
+
+    int source = sourceFirst + sourceSecond;
+    int destination = destFirst + destSecond;
+    
+    printf("src port: %d\n", source);
+    printf("dst port: %d\n", destination);
 
 }
