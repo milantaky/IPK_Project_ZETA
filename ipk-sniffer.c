@@ -31,7 +31,7 @@ void vytiskniObsah(const u_char *packetos, int delka);
 // TODO : timestamp doladit
 
 int main(int argc, char** argv){
-    char interface[20];
+    char interface[20] = "";
     int pocetPacketu = 1;                   // Defaultne
     char filteros[2048] = "";               
     int pocetProtokolu = 0;
