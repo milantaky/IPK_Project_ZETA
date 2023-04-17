@@ -15,7 +15,9 @@ Spouštění:
 ---
 Po přeložení souboru **ipk-sniffer.c** příkazem `make` dostanete spustitelný soubor.
 Toto je příkaz ke spuštění s přepínači:
+
 `./ipk-sniffer [-i interface | --interface interface] {-p port [--tcp|-t] [--udp|-u]} [--arp] [--icmp4] [--icmp6] [--igmp] [--mld] {-n num}`
+
 Kde:
 * `-i eth0` (sniffuje se pouze jedno rozhraní) nebo `--interface`. Není-li tento parametr zadán (a ostatní parametry rovněž) nebo je-li zadáno pouze `-i/--interface` bez hodnoty (a ostatní parametry nejsou zadány), vypíše se seznam aktivních rozhraní (další informace nad rámec seznamu rozhraní jsou vítány, ale nejsou vyžadovány).
 * `-t` nebo` --tcp` (zobrazí segmenty TCP a je volitelně doplněn funkcí -p).
@@ -33,7 +35,7 @@ Všechny argumenty mohou být v libovolném pořadí.
 
 **Teorie na pozadí**
 ===
-Program k zachycení packetu využívá knihovny `libpcap`.
+Program k zachycení packetu využívá knihovny `libpcap`[1].
 Nejprve se zpracují zadané přepínače. 
 Funkcí `pcap_open_live` se otevře nastavený interface pro sniffing s módem promiscuous, který zajišťuje čtení všech packetů procházejících tímto rozhraním.
 Podle nich se vytvoří filtr, a funkcemi `pcap_compile` a `pcap_setfilter` se přeloží a aplikuje.
@@ -53,12 +55,15 @@ Program je připraven i na přijmutí `C-c` (interrupt) signálu.
 ---
 Jediné s čím má program problém jsou `MLD` packety, nechce je zachytávat.
 
-**Doporučení k testování**
+**Testování**
 ---
-Testoval jsem na MACOS (Apple silicon), a OS NIX.
-* Nejvíce se mi osvedčilo spouštět s programem WireShark a následně kontrolovat vypsané packety
-* Dobré k testování konkrétních protokolů je stažení pcap souboru a "odeslání" aplikací `tcpreplay`.
+Testování probíhalo na systému MACOS (Apple silicon), a OS NIX. Logy ve složce `test` jsou z MACu. Testováno bylo správné zachycení a výpis
+zachyceného packetu.
+
+
+Výsledné outputy (logy) jsou vysniffovanými packety "zaslané" pomocí `tcpreplay`. Poskytnuty jsou i stejnojmenné pcap soubory, které byly zasílány.
 
 **Zdroje**
 ===
-Práce s pcap funkcemi - [tcpdump](https://www.tcpdump.org).
+[1] (https://www.tcpdump.org) Práce s pcap funkcemi.
+[2] (https://www.tcpdump.org) Tcpreplay.
