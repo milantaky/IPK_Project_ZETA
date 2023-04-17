@@ -66,4 +66,5 @@ Výsledné outputy (logy) jsou vysniffovanými packety "zaslané" pomocí `tcpre
 **Zdroje**
 ===
 [1] (https://www.tcpdump.org) Práce s pcap funkcemi.
+
 [2] (https://www.tcpdump.org) Tcpreplay.
