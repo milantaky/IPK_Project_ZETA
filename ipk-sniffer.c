@@ -191,9 +191,9 @@ int main(int argc, char** argv){
                 }
                 else if(strcmp(argv[argN], "--mld") == 0){      // MLD --mld
                     if(!pocetProtokolu){
-                        strcat(filteros, "(icmp6 and (ip6[40] = 143))");
+                        strcat(filteros, "(icmp6 and (ip6[40]= 130))");
                     } else {
-                        strcat(filteros, " or (icmp6 and (ip6[40] = 143))");
+                        strcat(filteros, " or (icmp6 and (ip6[40] = 130))");
                     }
                     pocetProtokolu++;
                 } 
@@ -217,17 +217,16 @@ int main(int argc, char** argv){
 
     }      
 
-    // printf("\n------------- MOJE INFO --------------\n");
-    // printf("Interface: %s\n", interface);
-    // printf("Filter: %s\n", filteros);
-    // printf("Port %d\n", port);
-    // printf("N %d\n", pocetPacketu);
-    // printf("pocetProtokolu %d\n", pocetProtokolu);
-    // printf("--------------------------------------\n\n");
+    printf("\n------------- MOJE INFO --------------\n");
+    printf("Interface: %s\n", interface);
+    printf("Filter: %s\n", filteros);
+    printf("Port %d\n", port);
+    printf("N %d\n", pocetPacketu);
+    printf("pocetProtokolu %d\n", pocetProtokolu);
+    printf("--------------------------------------\n\n");
 
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
-    // pcap_t *handle;     // kam se bude chytat
 
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
     if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, 1000, errBuff)) == NULL){
@@ -271,9 +270,9 @@ int main(int argc, char** argv){
 
 // ---------------- TEST
 // bere to :
-    // ARP, IGMP, NDP, UDP, UDP s portem, TCP, TCP s portem, ICMPv6
-// melo by :
-    //snad icmpv4, mld (neprisel zadny),
+    // ARP, IGMP, NDP, UDP, UDP s portem, TCP, TCP s portem, ICMPv6, icmpv4
+// nebere:
+    // mld (neprisel zadny),
 
 // TCP
 // UDP
