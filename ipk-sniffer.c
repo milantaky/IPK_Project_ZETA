@@ -17,7 +17,6 @@ typedef unsigned short u_short;
 
 #define MAX_PACKET_SIZE 65535
 
-
 pcap_t *handle;     // kam se bude chytat
 
 // INTERRUPT
@@ -41,16 +40,16 @@ void vytiskniObsah(const u_char *packetos, int delka);
 int main(int argc, char** argv){
     signal(SIGINT, intHandler);
     char interface[20] = "";
-    int pocetPacketu = 1;                   // Defaultne
     char filteros[2048] = "";               
+    int interfaceSet = 0;    
+    int pocetPacketu = 1;                   // Defaultne
     int pocetProtokolu = 0;
     int port = -1;      
-    int interfaceSet = 0;    
     
 // Zpracovani prepinacu ---------------------------------------------------------------------
     if(argc == 1) {
         return 0;
-    } else {
+    } else {                            // !!! Tady doporucuju zavrit pro prehlednost -> nechtelo se mi to rvat do funkce
         // Zadan pouze interface -> vypis aktivnich rozhrani 
         if(argc == 2 && (strcmp(argv[1], "-i") == 0 || strcmp(argv[1], "--interface") == 0)){
             if(!vypisAktivniRozhrani()){
@@ -217,14 +216,6 @@ int main(int argc, char** argv){
 
     }      
 
-    printf("\n------------- MOJE INFO --------------\n");
-    printf("Interface: %s\n", interface);
-    printf("Filter: %s\n", filteros);
-    printf("Port %d\n", port);
-    printf("N %d\n", pocetPacketu);
-    printf("pocetProtokolu %d\n", pocetProtokolu);
-    printf("--------------------------------------\n\n");
-
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
 
@@ -237,7 +228,6 @@ int main(int argc, char** argv){
 
     // Filtr  --------------------------------------------------------------------------
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_compile.3pcap.html
-
     struct bpf_program pFilter; 
     if(pocetProtokolu){
         if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
@@ -273,22 +263,6 @@ int main(int argc, char** argv){
 
     return 0;
 }
-
-// ---------------- TEST
-// bere to :
-    // ARP, IGMP, NDP, UDP, UDP s portem, TCP, TCP s portem, ICMPv6, icmpv4
-// nebere:
-    // mld (neprisel zadny),
-
-// TCP
-// UDP
-// ARP
-// ICMPv6
-    // NDP
-    // MLD
-// ICMPv4
-// IGMP
-
 
 // Vypise seznam aktivnich rozhrani
 // Vraci 1 pri chybe, jinak 0
