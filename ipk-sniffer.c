@@ -378,8 +378,8 @@ void vytiskniTimestamp(){
 
     //.xxx za casem nespecifikovano
 
-    char timeMod[50] = "";
-    strncpy(timeMod, timestamp, sizeof(timestamp));
+    char timeMod[30] = "";
+    strncpy(timeMod, timestamp, sizeof(timeMod));
 
     for(int i = (int) strlen(timestamp) + 1; i > (int) strlen(timestamp) - 2; i--){
         timeMod[i] =  timeMod[i - 1];
