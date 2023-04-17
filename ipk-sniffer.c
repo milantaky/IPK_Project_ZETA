@@ -371,7 +371,7 @@ void vytiskniMAC(const u_char *body){
 // Vytiskne timestamp
 void vytiskniTimestamp(){
 
-    char timestamp[50];
+    char timestamp[30];
     time_t now = time(NULL);
     struct tm *tm_now = gmtime(&now);
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%S%z", tm_now);
@@ -379,7 +379,7 @@ void vytiskniTimestamp(){
     //.xxx za casem nespecifikovano
 
     char timeMod[50] = "";
-    strncpy(timeMod, timestamp, strlen(timestamp));
+    strncpy(timeMod, timestamp, sizeof(timestamp));
 
     for(int i = (int) strlen(timestamp) + 1; i > (int) strlen(timestamp) - 2; i--){
         timeMod[i] =  timeMod[i - 1];
