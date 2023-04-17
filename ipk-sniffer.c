@@ -217,17 +217,18 @@ int main(int argc, char** argv){
 
     }      
 
-    printf("\n------------- MOJE INFO --------------\n");
-    printf("Interface: %s\n", interface);
-    printf("Filter: %s\n", filteros);
-    printf("Port %d\n", port);
-    printf("N %d\n", pocetPacketu);
-    printf("pocetProtokolu %d\n", pocetProtokolu);
-    printf("--------------------------------------\n\n");
+    // printf("\n------------- MOJE INFO --------------\n");
+    // printf("Interface: %s\n", interface);
+    // printf("Filter: %s\n", filteros);
+    // printf("Port %d\n", port);
+    // printf("N %d\n", pocetPacketu);
+    // printf("pocetProtokolu %d\n", pocetProtokolu);
+    // printf("--------------------------------------\n\n");
 
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
 
+    // Otevreni interfacu pro chytani
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
     if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, 1000, errBuff)) == NULL){
         fprintf(stderr, "CHYBA: Nastala chyba pri otevreni interface pro sniffing:\n       %s\n",errBuff);
