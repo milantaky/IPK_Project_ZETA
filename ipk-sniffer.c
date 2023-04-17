@@ -13,8 +13,19 @@ typedef unsigned short u_short;
 #include <net/ethernet.h>   
 #include <netinet/if_ether.h>
 #include <time.h>
+#include <signal.h>
 
 #define MAX_PACKET_SIZE 65535
+
+
+pcap_t *handle;     // kam se bude chytat
+
+// INTERRUPT
+int inter = 0;
+void intHandler() {
+    pcap_breakloop(handle);
+    inter = 1;
+}
 
 int vypisAktivniRozhrani();
 void packetCallback(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body);
@@ -27,10 +38,13 @@ void zpracujIPv6(const u_char *packet, int src);
 void vypisPorty(const u_char *packet, int src, int dst);
 void vytiskniObsah(const u_char *packetos, int delka);
 
+
+
 // TODO : interrupt signal
 // TODO : timestamp doladit
 
 int main(int argc, char** argv){
+    signal(SIGINT, intHandler);
     char interface[20] = "";
     int pocetPacketu = 1;                   // Defaultne
     char filteros[2048] = "";               
@@ -218,7 +232,7 @@ int main(int argc, char** argv){
 
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
-    pcap_t *handle;     // kam se bude chytat
+    // pcap_t *handle;     // kam se bude chytat
 
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_open_live.3pcap.html
     if((handle = pcap_open_live(interface, MAX_PACKET_SIZE, 1, 1000, errBuff)) == NULL){
@@ -229,8 +243,8 @@ int main(int argc, char** argv){
     // Filtr  --------------------------------------------------------------------------
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_compile.3pcap.html
 
+    struct bpf_program pFilter; 
     if(pocetProtokolu){
-        struct bpf_program pFilter; 
         if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
             fprintf(stderr, "CHYBA: Prelozeni filtru:\n       %s\n", pcap_geterr(handle));
             return 1;
@@ -240,14 +254,21 @@ int main(int argc, char** argv){
             fprintf(stderr, "CHYBA: Nastaveni filtru:\n       %s\n", pcap_geterr(handle));
             return 1;
         }
-    }                      
+    }    
+
+    signal(SIGINT, intHandler);                
 
     // Chytani packetu -----------------------------------------------------------------
     if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
-        fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
-        return 1;
+        if(inter){
+            printf("\nByl zavolan signal preruseni, ukoncuji \n");
+        } else {
+            fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
+            return 1;
+        }
     }
-
+        
+    pcap_freecode(&pFilter);
     pcap_close(handle);
 
     return 0;
@@ -297,7 +318,6 @@ int vypisAktivniRozhrani(){
 
 // Callback funkce pro zpracovani packetu
 void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const u_char *packetBody){
-
     // Zkontroluje jestli je packet typu LINKTYPE_ETHERNET (DLT_EN10MB)
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_datalink.3pcap.html
     int linkType = pcap_datalink((pcap_t *) user);
@@ -344,7 +364,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 
     vytiskniObsah(packetBody, packetHeader->caplen);
 
-    printf("\n\n");
+    printf("\n");
     
 }
 
