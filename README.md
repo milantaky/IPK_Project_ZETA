@@ -42,7 +42,7 @@ Následně se packet zpracuje podle funkce v její hlavičce. Pak vytiskne zákl
 * Zdrojovou a cílovou MAC adresu 
 * Délku packetu
 * Zdrojovou a cílovou IP adresu
-* Obsah packetu 
+* Obsah packetu;
 Jakmile je zpracován požadovaný počet packetů, uvolní se filtr, interface se uzavře, a program se ukončí.
 Když nastane při běhu programu nějaká chyba, program se ukončí a vztiskne se příslušná chybová hláška.
 Program je připraven i na přijmutí `C-c` (interrupt) signálu.
