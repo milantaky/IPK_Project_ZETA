@@ -57,11 +57,11 @@ Jediné s čím má program problém jsou `MLD` packety, nechce je zachytávat.
 
 **Testování**
 ---
-Testování probíhalo na systému MACOS (Apple silicon), a OS NIX. Logy ve složce `test` jsou z MACu. Testováno bylo správné zachycení a výpis
+Testování probíhalo na systému MACOS (Apple silicon), a OS NIX. Logy ve složce `testy` jsou z MACu. Testováno bylo správné zachycení a výpis
 zachyceného packetu.
 
 
-Výsledné outputy (logy) jsou vysniffovanými packety "zaslané" pomocí `tcpreplay`. Poskytnuty jsou i stejnojmenné pcap soubory, které byly zasílány.
+Výsledné outputy (logy) jsou vysniffovanými packety "zaslané" pomocí `tcpreplay`. Poskytnuty jsou i stejnojmenné pcap soubory, které byly zasílány. U TCP a UDP byl limit 5 packetů.
 
 **Zdroje**
 ===
