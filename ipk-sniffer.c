@@ -191,9 +191,9 @@ int main(int argc, char** argv){
                 }
                 else if(strcmp(argv[argN], "--mld") == 0){      // MLD --mld
                     if(!pocetProtokolu){
-                        strcat(filteros, "(icmp6 and (ip6[40]= 130))");
+                        strcat(filteros, "(icmp6 and (ip6[40]= 143))");
                     } else {
-                        strcat(filteros, " or (icmp6 and (ip6[40] = 130))");
+                        strcat(filteros, " or (icmp6 and (ip6[40] = 143))");
                     }
                     pocetProtokolu++;
                 } 
@@ -217,13 +217,13 @@ int main(int argc, char** argv){
 
     }      
 
-    // printf("\n------------- MOJE INFO --------------\n");
-    // printf("Interface: %s\n", interface);
-    // printf("Filter: %s\n", filteros);
-    // printf("Port %d\n", port);
-    // printf("N %d\n", pocetPacketu);
-    // printf("pocetProtokolu %d\n", pocetProtokolu);
-    // printf("--------------------------------------\n\n");
+    printf("\n------------- MOJE INFO --------------\n");
+    printf("Interface: %s\n", interface);
+    printf("Filter: %s\n", filteros);
+    printf("Port %d\n", port);
+    printf("N %d\n", pocetPacketu);
+    printf("pocetProtokolu %d\n", pocetProtokolu);
+    printf("--------------------------------------\n\n");
 
     char errBuff[PCAP_ERRBUF_SIZE];
     memset(errBuff, 0, PCAP_ERRBUF_SIZE);
@@ -242,16 +242,17 @@ int main(int argc, char** argv){
     if(pocetProtokolu){
         if(pcap_compile(handle, &pFilter, filteros, 0, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR){
             fprintf(stderr, "CHYBA: Prelozeni filtru:\n       %s\n", pcap_geterr(handle));
+            pcap_close(handle);
             return 1;
         }
         
         if(pcap_setfilter(handle, &pFilter) == PCAP_ERROR){
             fprintf(stderr, "CHYBA: Nastaveni filtru:\n       %s\n", pcap_geterr(handle));
+            pcap_freecode(&pFilter);
+            pcap_close(handle);
             return 1;
         }
-    }    
-
-    signal(SIGINT, intHandler);                
+    }                    
 
     // Chytani packetu -----------------------------------------------------------------
     if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
@@ -259,11 +260,15 @@ int main(int argc, char** argv){
             printf("\nByl zavolan signal preruseni, ukoncuji \n");
         } else {
             fprintf(stderr, "CHYBA: Nastala chyba pri prijimani nebo zpracovani packetu.\n");
+            pcap_close(handle);
             return 1;
         }
     }
         
-    pcap_freecode(&pFilter);
+    if(pocetProtokolu){
+        pcap_freecode(&pFilter);
+    }
+
     pcap_close(handle);
 
     return 0;
@@ -354,8 +359,6 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     if(type[0] == 134 && type[1] == 221){
         vytiskniIPv6(packetBody, 22, 38); // ipv6 src 22-37 dst 38-53
     }
-
-    // Type: resit REVARP? Ne
 
     vytiskniObsah(packetBody, packetHeader->caplen);
 
