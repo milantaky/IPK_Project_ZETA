@@ -24,6 +24,8 @@ void vypisInfoOPacketu(const struct pcap_pkthdr *header, const u_char *body);
 void vytiskniTimestamp();
 void vytiskniMAC(const u_char *body);
 void vytiskniIPv4(const u_char *packet ,int src, int dest);
+void vytiskniIPv6(const u_char *packet ,int src, int dest);
+void zpracujIPv6(const u_char *packet, int src);
 void vytiskniObsah(const u_char *packetos, int delka);
 
 // TODO : interrupt signal
@@ -240,7 +242,7 @@ int main(int argc, char** argv){
             fprintf(stderr, "CHYBA: Nastaveni filtru:\n       %s\n", pcap_geterr(handle));
             return 1;
         }
-    }                           //      igmp, arp, icmp6 (jeho soucasti je MLD)
+    }                      
 
     // Chytani packetu -----------------------------------------------------------------
     if(pcap_loop(handle, pocetPacketu, packetCallback, (u_char*)handle) != 0){
@@ -255,19 +257,9 @@ int main(int argc, char** argv){
 
 // ---------------- TEST
 // bere to :
-    // ARP, IGMP, NDP, UDP s portem, TCP s portem
+    // ARP, IGMP, NDP, UDP, UDP s portem, TCP, TCP s portem, ICMPv6
 // melo by :
-    // icmpv6, snad icmpv4, mld (neprisel zadny), TCP - bere to i TLS, ale to bezi na TCP, UDP - same QUIC, DNS
-
-// --icmp4 (will display only ICMPv4 packets).
-// --icmp6 (will display only ICMPv6 echo request/response).
-//     -- request - 128, reply - 129 
-//                                                             // --arp (will display only ARP frames).                                   
-//                                                             // --ndp (will display only ICMPv6 NDP packets).
-//                                                             //     -- types 133-137 u icmpv6
-//                                                             // --igmp (will display only IGMP packets).
-// --mld (will display only MLD packets).
-//     -- icmpv6 type 143
+    //snad icmpv4, mld (neprisel zadny),
 
 // TCP
 // UDP
@@ -326,13 +318,11 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     // ZDROJ: https://www.tcpdump.org/manpages/pcap_datalink.3pcap.html
     int linkType = pcap_datalink((pcap_t *) user);
     if(linkType != DLT_EN10MB) return;
-
-    //vypisInfoOPacketu(packetHeader, packetBody);
     
     vytiskniTimestamp();
     vytiskniMAC(packetBody);
-
     printf("frame length: %d bytes\n", packetHeader->len);
+
     // ROZDELENI PACKETU --------------------------------------------
         // int protocolType = ntohs(ethHeader->ether_type);      NEFUNGUJE
         // Proto se to deli podle manualniho nalezeni ether_type v packetu - jsou to jen LINKTYPE_ETHERNET, takze jine typy mi sem neprijdou (filtr)
@@ -364,8 +354,8 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
 
     // Type IPv6: 86 dd -> ICMPv6, MLD, NDP 
     if(type[0] == 134 && type[1] == 221){
-         printf("ipv6\n");
-         // ipv6 src 22-37 dst 38-53
+        printf("ipv6\n");
+        vytiskniIPv6(packetBody, 22, 38); // ipv6 src 22-37 dst 38-53
     }
 
     // Type: resit REVARP?
@@ -376,6 +366,7 @@ void packetCallback(u_char *user, const struct pcap_pkthdr *packetHeader, const 
     
 }
 
+// Vypise zdrojovou a cilovou MAC adresu
 void vytiskniMAC(const u_char *body){
     // DST indexy 0-5
     // SRC indexy 6-11
@@ -481,18 +472,113 @@ void vytiskniIPv4(const u_char *packet ,int src, int dest){
     printf("src IP: ");
     for(int i = 0; i < 4; i++){
         if(i != 3)
-        printf("%u.", srcAddress[i]);
-            else
-        printf("%u", srcAddress[i]);
+            printf("%u.", srcAddress[i]);
+        else
+            printf("%u", srcAddress[i]);
     }
 
     printf("\ndst IP: ");
     for(int i = 0; i < 4; i++){
         if(i != 3)
-        printf("%u.", destAddress[i]);
-            else
-        printf("%u", destAddress[i]);
+            printf("%u.", destAddress[i]);
+        else
+            printf("%u", destAddress[i]);
     }
     printf("\n");
+
+}
+
+// Vypise zdrojovou a cilovou IPv6 adresu
+void vytiskniIPv6(const u_char *packet ,int src, int dest){
+    printf("src IP: ");
+    zpracujIPv6(packet, src);
+    printf("\ndst IP: ");
+    zpracujIPv6(packet, dest);
+    printf("\n");
+
+
+
+}
+
+void zpracujIPv6(const u_char *packet, int src){
+    // delka ipv6 adresy je 16 indexu
+    // pokud je prvni 0, muzes druhou vypsat jako jednomistnou, jinak 02x -> ff02, ale ne ff2, pokud to neni 0ff2 asi
+
+    // Nacteni IPv6 adresy
+    int dest = src + 16;
+    char sourceRaw[16] = "";
+    int z = 0;
+    for(int i = src; i < dest; i++){
+        sourceRaw[z] = packet[i];
+        z++;
+    }
+
+    // Pridani dvojtecek
+    char source[23];
+    int k = 0;
+    for(int i = 0; i < 16; i++){
+        source[k] = sourceRaw[i];
+        printf("%02x", (unsigned char) source[k]);
+        if((i+1) % 2 == 0 && i != 15){
+            k++;
+            source[k] = 58;
+            printf(":");
+        }
+        k++;
+    }
+    printf("\n");
+
+    // Nalezeni indexu nejdelsiho retezce 0
+    int delkaPole = 16;
+    int start = -1;
+    int nejdelsiVyskyt = 0;
+    int aktualniVyskyt = 0;
+    int aktualniIndex = -1;
+    for(int i = 0; i < delkaPole - 1; i +=2){
+        if(sourceRaw[i] == 0 && sourceRaw[i + 1] == 0){     // je tohle 0?
+            if(aktualniVyskyt == 0){                // nasla se alespon jedna 0
+                aktualniIndex = i;
+            }
+            aktualniVyskyt++;
+            if(aktualniVyskyt > nejdelsiVyskyt){    // je to zatim delsi jak max?
+                nejdelsiVyskyt = aktualniVyskyt;
+                start = aktualniIndex;
+            }
+        } else {
+            aktualniIndex = 0;
+            aktualniVyskyt = 0;
+        }
+    }       
+
+    char finalSource[23];
+    // Zacatek
+    for(int i = 0; i < start + start/2; i++){
+        finalSource[i] = source[i];
+    }
+    printf("\n");
+
+
+    // Zbytek
+    char help[23];
+    int kolik = 23 - start - 3*nejdelsiVyskyt;
+    int odkud = start + 3*nejdelsiVyskyt ;
+
+    for(int i = 0; i < kolik; i++){
+        help[i] = source[odkud + i];
+    }
+    
+    int temp = 0;
+    for(int i = start + start/2; i < 23 - 2*nejdelsiVyskyt - start; i++){
+        finalSource[i] = help[temp];
+        temp++;
+    }
+
+    // TODO : doladit jeste ty nuly v segmentech
+    for(int i = 0; i < start + 1 + 23 - odkud; i++){
+        if(finalSource[i] != 58)
+            printf("%02x", (unsigned char)finalSource[i]);
+        else 
+            printf(":");
+    }
 
 }
